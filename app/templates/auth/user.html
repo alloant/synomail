@@ -1,0 +1,41 @@
+{% extends 'base.html'%}
+
+{% block content %}
+<h1 class="text-center">Modify user {{ user.alias }}</h1>
+
+<div class="row bg-light p-4 rounded-3 border border-secondary">
+  <form method="POST" action="">
+    {{ form.crsf_token }}
+    <fieldset class="form-group">
+    <div class="container">
+      
+      <div class="row mb-3">
+          {{ form.alias(class="form-control", placeholder="User name") }}
+      </div>
+      
+      <div class="row mb-3">
+          {{ form.name(class="form-control", placeholder="Your full name") }}
+      </div>
+
+      <div class="row mb-3">
+        {{ form.email(class="form-control", placeholder="Your Email") }}
+      </div>
+     
+      <div class="row mb-3">
+        {{ form.u_groups(class="form-control") }}
+      </div> 
+     
+      <div class="row mb-3">
+        {{ form.active.label(class="form-check-label") }}
+        {{ form.active(class="form-check-input") }}
+        
+        {{ form.admin_active.label(class="form-check-label") }}
+        {{ form.admin_active(class="form-check-input") }}
+      </div>
+    </div>
+    </fieldset>
+    <button class="btn btn-primary btn-lg me-2">Submit</button> 
+  </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% if note.flow == 'in' and not '_ctr_' in reg or note.flow == 'out' and '_ctr_' in reg %}
+  {% if note.done == 1 %}
+    {% if ((user == note.sender or user in note.receiver or user.admin) and user.alias in note.read_by.split(',') or '_ctr_' in reg) and note.state >= 4 %}
+      <a href="?reg={{reg}}&mark={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-check-circle-fill" style="color: green;"></i></a>
+    {% else %}
+      <i class="bi bi-check-lg" style="color: gray;"></i>
+    {% endif %}
+  {% else %}
+    {% if ((user == note.sender or user in note.receiver or user.admin) and user.alias in note.read_by.split(",") or '_ctr_' in reg) and note.state >= 4 %}
+      <a href="?reg={{reg}}&mark={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-x-circle-fill" style="color: red;"></i></a>
+    {% else %}
+      <i class="bi bi-x-lg" style="color: gray;"></i>
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+
+{% if (not '_ctr_' in reg and note.flow == 'in') or (note.flow == 'out' and '_ctr_' in reg)  %}
+  {% if user.alias in note.read_by %}
+    <a href="?reg={{reg}}&read={{note.id}}&page={{page}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Mark as read"><i class="bi bi-eye" style="color: gray;"></i></a>
+  {% else %}
+    <a href="?reg={{reg}}&read={{note.id}}&page={{page}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Mark as read"><i class="bi bi-eye-slash" style="color: black;"></i></a>
+  {% endif %}
+{% else %}
+  {% if note.state == 0 %}  
+    <a href="?reg={{reg}}&read={{note.id}}&page={{page}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Send note"><i class="bi bi-clock" style="color: gray;"></i></a>
+  {% elif note.state == 1 %}  
+    <span data-bs-toggle="tooltip" title="Sent"><i class="bi bi-check" style="color: gray;"></i></span>
+  {% elif note.state == 2 %}  
+    <span data-bs-toggle="tooltip" title="Received"><i class="bi bi-check" style="color: blue;"></i></span>
+  {% elif note.state == 3 %}  
+    <span data-bs-toggle="tooltip" title="Working on it"><i class="bi bi-check-all" style="color: blue;"></i></span>
+  {% elif note.state == 4 %}  
+    <span data-bs-toggle="tooltip" title="Done"><i class="bi bi-check2-circle" style="color: green;"></i></span>
+  {% endif %}  
+{% endif %}
+
+{% if (user == note.sender and note.state == 0) or user.admin or ('_ctr_' in reg and note.flow == 'in' and note.state == 0) %}
+  <a href="/edit_note?note={{note.id}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Edit note"><i class="bi bi-pencil-square"></i></a>
+{% endif%}

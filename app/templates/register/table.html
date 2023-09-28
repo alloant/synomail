@@ -1,0 +1,77 @@
+  <form class="invisible" id="addfiles" method="POST">
+  </form>
+<div class="table-responsive">  
+  <table class="table table-sm table-striped">
+    <thead class="">
+      <tr class="bg-dark">
+        <th></th>
+        <th>Date</th>
+        <th>No</th>
+        {% if not '_ctr_' in reg %}
+        <th>Dep</th>
+        {% endif %}
+        <th>Content</th>
+        <th></th>
+        <th>Ref</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for note in notes %}
+      {% if note.is_bold(reg,current_user) %}
+        <tr class="fw-bold">
+      {% else %}
+        <tr>
+      {% endif %}
+        <td>
+          {% include 'register/table_read_by.html' %}
+        </td>
+        
+        <td>
+          <span class="d-md-none d-lg-block"><small>{{ note.date.strftime('%y-%m-%d') }}</small></span>
+        </td>
+        
+        <td>
+          <a href="?reg=all&note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
+        </td>
+       
+        {% if not '_ctr_' in reg %}
+        <td>
+          {% if note.flow == 'out' %}
+            <span class="badge bg-primary">{{note.sender}}</span>
+
+          {% elif note.flow == 'in' %}
+            {% if note.receiver|length > 1 %}
+              <span class="badge bg-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{note.receivers}}">deps</span>
+            {% elif note.receiver %}
+              <span class="badge bg-danger">{{note.receiver[0]}}</span>
+            {% endif %}
+          {% endif %}
+        </td>
+        {% endif %}
+
+        <td>
+          {{ note.content }}
+        </td>
+       
+        <td>
+          {% if note.permanent_link %}
+            <a href="https://nas.prome.sg:5001/d/f/{{note.permanent_link}}" data-bs-toggle="tooltip" title="Folder" target="_blank"><i class="bi bi-folder" style="color: orange;"></i></a>
+          {% endif %}
+
+          {% if user.admin or ((user == note.sender and user.alias in note.read_by.split(',') or '_ctr_' in reg and note.flow == 'in') ) %}
+            <button type="submit" form="addfiles" class="btn p-0" data-bs-toggle="modal" data-bs-target="#wait" name="addfiles" value="{{note.id}}"><i class="bi bi-folder-plus" style="color: orange;"></i></button>
+          {% endif%} 
+
+          {% for file in note.files %}
+            {% include 'register/table_file.html' %}
+          {% endfor %}
+        </td>
+
+        <td>
+          {{ note.refs|safe }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,103 @@
+# auth.py
+
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+from flask_login import login_user, logout_user, login_required
+
+from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.fernet import Fernet
+
+from sqlalchemy import select
+
+from app.forms.login import LoginForm, RegistrationForm, UserForm
+from app.models.user import User
+from app import db
+
+bp = Blueprint('auth', __name__)
+
+@bp.route('/login', methods=['GET','POST'])
+def login():
+    form = LoginForm(request.form)
+    if request.method == 'POST' and form.validate():
+        user = db.session.scalar(select(User).where(User.alias==form.alias.data))
+
+        if not user or not check_password_hash(user.password,form.password.data):
+            flash('User or password is not correct')
+            return render_template('auth/auth.html',login=True, form=form)
+
+        login_user(user)
+
+        return redirect(url_for('register.register',reg='all'))
+    
+    return render_template('auth/auth.html',login=True, form=form)
+
+@bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    form = RegistrationForm(request.form)
+    print(form,form.validate())
+    if request.method == 'POST' and form.validate():
+        user = db.session.scalar(select(User).where(User.alias==form.alias.data))
+        cipher = Fernet(current_app.config['SECRET_KEY'])
+        print(user) 
+        if user:
+            if user.password != '':  
+                flash('Name user already exists')
+                return render_template('auth/auth.html', login=False, form=form)
+            
+            user.name = form.name.data
+            user.alias = form.alias.data
+            user.email = form.email.data
+            user.password = generate_password_hash(form.password.data,method='scrypt')
+            user.password_nas = cipher.encrypt(str.encode(form.password.data))
+        else:
+            alias = form.alias.data.split(" ")
+            groups = ""
+            if len(alias) == 2:
+                if alias[0] in ['d','sd','sd1','sd2','scl','sacd','of']:
+                    ctr = User.query.filter_by(User.alias==alias[1],User.groups.contains('ctr')).first()
+                    if not ctr or alias[0] == 'of':
+                        flash('User is not in Synology')
+                        return render_template('auth/auth.html', login=False, form=form)
+            
+                groups = 'Aes-of' if alias[0] == 'of' else alias[1]
+
+            # create new user with the form data. Hash the password so plaintext version isn't saved.
+            new_user = User(name=form.name.data,alias=form.alias.data, email=form.email.data, u_groups=groups, password=generate_password_hash(form.password.data), password_nas=cipher.encrypt(str.encode(form.password.data)))
+
+            # add the new user to the database
+            db.session.add(new_user)
+        
+        db.session.commit()
+
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/auth.html', login=False, form=form)
+
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('auth.login'))
+
+@bp.route('/edit_user')
+@login_required
+def edit_user():
+    user_id = request.args.get('user')
+    user = db.session.scalar(select(User).where(User.id==user_id))
+    wantedurl = request.args.get('wantedurl')
+
+    form = UserForm(request.form,obj=user)
+
+    if request.method == 'POST' and form.validate():
+        user.name = form.name.data
+        user.alias = form.alias.data
+        user.email = form.email.data
+        user.u_groups = form.u_groups.data
+        user.active = form.active.data
+        user.admin_active = form.admin_active.data
+
+        db.session.commit()
+
+        return redirect(wantedurl)
+
+    return render_template('auth/user.html', form=form, user=user)
+

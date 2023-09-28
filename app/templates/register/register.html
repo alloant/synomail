@@ -1,0 +1,17 @@
+<!-- templates/profile.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="title text-center display-4">
+  {{title}}
+</h1>
+
+<div class="row">
+
+  <div class="col">
+    {% include 'register/table_search.html' %}
+  </div>
+</div>
+
+{% endblock %}

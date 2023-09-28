@@ -1,0 +1,9 @@
+1. use {% with notes = notes1 %} {% endwith %}
+
+2. Different registers. Like Aes, vc, der or gul. That way you see your own registers.
+
+3. Def in Note style contains(user) and then can see if it have to be seen or not.
+
+4. Use flash() for the logging thing
+
+6. To add and remove ref I put in the form a text line and people write like Aes 98/23... Then I check them and add them as proper refs. Or remove then.

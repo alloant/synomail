@@ -1,0 +1,105 @@
+<div class="table-responsive">
+  <table class="table table-sm table-striped">
+    <thead class="">
+      <tr class="bg-dark">
+        <th></th>
+        <th></th>
+        <th>Date</th>
+        <th>No</th>
+        {% if not reg in ['in','out'] %}
+        <th></th>
+        {% endif %}
+        <th>Content</th>
+        <th></th>
+        <th>Ref</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for note in notes %}
+      {% if user.alias in note.read_by %}
+        <tr>
+      {% else %}
+        <tr class="fw-bold">
+      {% endif %}
+        <td>
+          {% if note.done == 1 %}
+            {% if user == note.sender or user in note.receiver or 'admin' in user.groups or reg in ['in','out'] %}
+              <a href="?reg={{reg}}&mark={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-check-circle-fill" style="color: green;"></i></a>
+            {% else %}
+              <i class="bi bi-check-lg" style="color: gray;"></i>
+            {% endif %}
+          {% else %}
+            {% if user == note.sender or user in note.receiver or 'admin' in user.groups or reg in ['in','out'] %}
+              <a href="?reg={{reg}}&mark={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-x-circle-fill" style="color: red;"></i></a>
+            {% else %}
+              <i class="bi bi-x-lg" style="color: gray;"></i>
+            {% endif %}
+          {% endif %}
+
+          {% if user.alias in note.read_by %}
+            <a href="?reg={{reg}}&read={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-eye" style="color: gray;"></i></a>
+          {% else %}
+            <a href="?reg={{reg}}&read={{note.fullkey}}&page={{page}}" data-bs-toggle="tooltip" title="Mark as done"><i class="bi bi-eye-slash" style="color: black;"></i></a>
+          {% endif %}
+
+        </td>
+        
+        <td>
+          {% if user == note.sender or user in note.receiver or 'admin' in user.groups or reg in ['in','out'] %}
+          <a href="/edit_note?note={{note.id}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Edit note"><i class="bi bi-pencil-square"></i></a>
+          {% endif%} 
+        </td>
+        
+        <td>
+          <span class="d-md-none d-lg-block"><small>{{ note.date.strftime('%y-%m-%d') }}</small></span>
+        </td>
+        
+        <td>
+          {{ note.fullkey_html|safe }}
+        </td>
+       
+        {% if not reg in ['in','out'] %}
+        <td>
+          {% if note.flow == 'out' %}
+          {% if note.receiver|length > 1 %}
+              <span class="badge bg-danger" data-bs-toggle="tooltip" title="{{note.receivers}}">{{note.reg}}</span>
+            {% elif note.receiver %}
+              <span class="badge bg-danger">{{note.receiver[0]}}</span>
+            {% endif %}
+            
+            <span class="badge bg-primary">{{note.sender}}</span>
+
+          {% elif note.flow == 'in' %}
+            <span class="badge bg-primary">{{note.sender}}</span>
+
+            {% if note.receiver|length > 1 %}
+              <span class="badge bg-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{note.receivers}}">deps</span>
+            {% elif note.receiver %}
+              <span class="badge bg-danger">{{note.receiver[0]}}</span>
+            {% endif %}
+          {% endif %}
+        </td>
+        {% endif %}
+
+        <td>
+          {{ note.content }}
+        </td>
+       
+        <td>
+          {% if user == note.sender or user in note.receiver or 'admin' in user.groups %}
+          <a href="/add_files?note={{note.fullkey}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Add files"><i class="bi bi-folder-plus" style="color: orange;"></i></a>
+          {% endif%} 
+
+          {% for file in note.files %}
+            {% include 'register/table_file.html' %}
+          {% endfor %}
+        </td>
+
+        <td>
+          {{ note.refs|safe }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
