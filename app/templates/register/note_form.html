@@ -11,7 +11,10 @@
         <div class="col-8">
           <div class="container">
             <div class="row p-2">
-              <div class="col-8">
+              <div class="col-2">
+                {{ form.permanent(class="form-check-input") }}
+                {{ form.permanent.label(class="form-check-label") }}
+              </div><div class="col-6">
                 {{ form.n_date.label(class="form-label") }}
                 {{ form.n_date(class="form-control") }}
               </div>

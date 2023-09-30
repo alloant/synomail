@@ -78,26 +78,35 @@ def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
-@bp.route('/edit_user')
+@bp.route('/edit_user', methods=['GET', 'POST'])
 @login_required
 def edit_user():
     user_id = request.args.get('user')
-    user = db.session.scalar(select(User).where(User.id==user_id))
+    user = db.session.scalars(select(User).where(User.id==user_id)).first()
     wantedurl = request.args.get('wantedurl')
-
+ 
     form = UserForm(request.form,obj=user)
 
+    #form.active.data =  1 if user.active else 0
+    #form.admin_active.data = 1 if user.admin_active else 0
+    
     if request.method == 'POST' and form.validate():
-        user.name = form.name.data
         user.alias = form.alias.data
+        user.name = form.name.data
         user.email = form.email.data
         user.u_groups = form.u_groups.data
+       
         user.active = form.active.data
         user.admin_active = form.admin_active.data
 
         db.session.commit()
 
         return redirect(wantedurl)
+    else:
+        form.active.data = user.active
+        form.admin_active.data = user.admin_active
 
+    
+    
     return render_template('auth/user.html', form=form, user=user)
 

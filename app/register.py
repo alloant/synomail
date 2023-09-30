@@ -340,6 +340,7 @@ def edit_note():
         note.year = form.year.data
         note.content = form.content.data
         note.proc = form.proc.data
+        note.permanent = form.permanent.data
         #note.sender = form.sender.data
        
         for n,user in enumerate(reversed(note.receiver)):
@@ -354,7 +355,6 @@ def edit_note():
 
         for ref in form.ref.data.split(","):
             if form.ref.data == "": break
-            print(ref)
             nr = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==ref.strip())).first()
             if nr:
                 note.ref.append(nr)
@@ -371,6 +371,7 @@ def edit_note():
         form.ref.data = ",".join([r.fullkey for r in note.ref]) if note.ref else "" 
         for rec in note.receiver:
             form.receiver.data.append(rec.alias)
+        form.permanent.data = note.permanent
 
     return render_template('register/note_form.html', form=form, note=note, user=current_user)
 

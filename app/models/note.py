@@ -36,6 +36,8 @@ class Note(NoteHtml,NoteNas,db.Model):
     ref = db.relationship('Note', secondary=note_ref, primaryjoin=note_ref.c.note_id==id, secondaryjoin=note_ref.c.ref_id==id, backref='notes') 
     permanent_link = db.Column(db.String(150), default = '')
     
+    permanent = db.Column(db.Boolean, default=False)
+    
     reg = db.Column(db.String(15), default = '')
     n_groups = db.Column(db.String(15), default = '')
 
@@ -155,7 +157,7 @@ class Note(NoteHtml,NoteNas,db.Model):
                     else_=False,
                 )
         elif 'cr' in user.groups: # is a member of cr
-            per = or_(not_(cls.n_groups.regexp_match(r'\bper\b')),'per' in user.groups)
+            per = or_(not_(cls.permanent),'per' in user.groups)
             return case(
                 (and_(
                     per,

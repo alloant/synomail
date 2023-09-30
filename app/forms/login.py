@@ -2,7 +2,7 @@
 
 from app.models.user import User
 
-from wtforms import Form, BooleanField, StringField, PasswordField, validators
+from wtforms import Form, BooleanField, StringField, PasswordField, validators, SubmitField, IntegerField
 
 class LoginForm(Form):
     alias = StringField('User', [validators.Length(min=3, max=25)])
@@ -22,10 +22,12 @@ class RegistrationForm(Form):
     confirm = PasswordField('Repeat Password')
 
 class UserForm(Form):
+    id = IntegerField('id')
     name = StringField('Name', [validators.Length(min=4, max=40)])
     alias = StringField('User', [validators.Length(min=3, max=25)])
     email = StringField('Email Address')
     u_groups = StringField('Groups')
     active = BooleanField('User is active')
-    admin_active = StringField('Admin mode on')
-    
+    admin_active = BooleanField('Admin mode on')
+   
+    submit = SubmitField('Submit')

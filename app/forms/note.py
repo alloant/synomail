@@ -1,7 +1,7 @@
 # forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField,DateField,IntegerField, RadioField, SubmitField, SelectMultipleField
+from wtforms import StringField, BooleanField, SelectField,DateField,IntegerField, RadioField, SubmitField, SelectMultipleField
 from wtforms.validators import DataRequired
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms_sqlalchemy.orm import QuerySelectField, QuerySelectMultipleField
@@ -28,5 +28,6 @@ class NoteForm(FlaskForm):
     proc = StringField('Procedure', validators=[])
     ref = StringField('References', validators=[])
 
+    permanent = BooleanField('Only permanent')
 
     submit = SubmitField("Submit")
