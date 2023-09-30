@@ -31,7 +31,7 @@
         </td>
         
         <td>
-          <a href="?reg=all&note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
+          <a href="?reg={{reg.split('_')[0]}}_all_{{reg.split(' ')[2]}}&h_note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
         </td>
        
         {% if not '_ctr_' in reg %}

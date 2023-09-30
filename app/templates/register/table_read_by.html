@@ -38,3 +38,6 @@
 {% if (user == note.sender and note.state == 0) or user.admin or ('_ctr_' in reg and note.flow == 'in' and note.state == 0) %}
   <a href="/edit_note?note={{note.id}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Edit note"><i class="bi bi-pencil-square"></i></a>
 {% endif%}
+
+
+  <a href="/register?reg=min_all_&ref={{note.id}}&wantedurl={{wantedurl}}" data-bs-toggle="tooltip" title="Generate minuta from note"><i class="bi bi-file-earmark-arrow-up"></i></a>

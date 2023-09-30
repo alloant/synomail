@@ -1,5 +1,5 @@
   <div class="d-flex">
-  {% if 'out' in reg %}
+  {% if 'out' in reg or 'min' in reg %}
     <form class="d-flex p-2" method="POST">
       <input href="#wait" type="submit" class="btn btn-primary me-2" data-bs-toggle="modal" name="newout" value="New">
     </form>
@@ -10,6 +10,14 @@
   {% endif %}
  
   <form class="d-flex p-2 flex-grow-1" method="POST">
+    <div class="form-check form-switch me-2">
+      {% if showAll %}
+        <input class="form-check-input" onChange="this.form.submit()" type="checkbox" id="flexSwitchCheckDefault" name="showAll" checked>
+      {% else %}
+        <input class="form-check-input" onChange="this.form.submit()" type="checkbox" id="flexSwitchCheckDefault" name="showAll">
+      {% endif %}
+      <label class="form-check-label" for="flexSwitchCheckDefault">All</label>
+    </div>
     <input type="search" class="form-control me-2" placeholder="Search" aria-label="Search" name="notes_filter">
     <button type="submit" class="btn btn-primary"><i class="bi-search"></i></button>
   </form>

@@ -94,6 +94,8 @@ class Note(NoteHtml,NoteNas,db.Model):
                 return f"cr {self.num}"
             else:
                 return f"cr-{self.receiver[0].alias} {self.num}"
+        elif 'min' == self.reg:
+            return f"Minuta-{self.sender.alias} {self.num}"
 
     @property
     def fullkeyto(self):
@@ -144,34 +146,23 @@ class Note(NoteHtml,NoteNas,db.Model):
     @user_can_see.expression
     def user_can_see(cls, user: User, reg: str):
         rg = reg.split('_')
-        if reg == 'despacho':
-            return and_(cls.flow == 'in',cls.state < 3, cls.state > 0)
-        elif reg == 'outbox':
-            return and_(cls.flow == 'out',cls.state < 3, cls.state > 0)
-        elif '_ctr_' in reg:
+        if rg[0] == 'des':
+            return and_(cls.flow == rg[1],cls.state < 3, cls.state > 0)
+        elif rg[0] == 'cl':
             if f"cl_{rg[2]}" in user.groups:
                 return case(
+                    (cls.permanent,'per' in user.groups),
                     (and_(cls.state<3,cls.flow=='out'),False),
                     (literal_column(f"sender_user.alias = '{rg[2]}'"), True),
                     (literal_column(f"receiver_user.alias = '{rg[2]}'"), True),
                     else_=False,
                 )
         elif 'cr' in user.groups: # is a member of cr
-            per = or_(not_(cls.permanent),'per' in user.groups)
             return case(
-                (and_(
-                    per,
-                    cls.flow=='in',
-                    cls.state>=3),
-                True),
-                
-                (and_(
-                    per,
-                    cls.flow=='out',
-                    or_(literal_column(f"sender_user.alias = '{user.alias}'"),cls.state>=3)),
-                 True),
-                
-                else_=False,
+                (cls.permanent,'per' in user.groups),
+                (literal_column(f"sender_user.alias = '{user.alias}'"),True),
+                (cls.state>=3,True),
+                else_=False
             )
         
         return False
@@ -192,13 +183,20 @@ class Note(NoteHtml,NoteNas,db.Model):
     
     @property
     def note_folder(self):
-        folder = self.fullkey.split("/")[0].replace(" ","_")
-        name,num = folder.split("_")
+        folder = self.fullkey.split("/")[0]
+        
+        name,num = folder.split(" ")
         num = f"0000{num}"[-4:]
-        return f"{name}_{num}"
+        if self.reg == 'min':
+            return f"Minuta_{num}"
+        else:
+            return f"{name}_{num}"
 
     def path_note(self):
-        return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
+        if self.reg == 'min':
+            return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}/{self.note_folder}"
+        else:
+            return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
 
     def is_read(self,user):
         return user.alias in self.read_by.split(",") or user.date > self.n_date
