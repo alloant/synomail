@@ -25,6 +25,7 @@ class NoteForm(FlaskForm):
     n_groups = StringField('Groups', validators=[])
     n_date = DateField('Date', validators=[DataRequired()])
     content = StringField('Content', validators=[DataRequired()])
+    comments = StringField('Comments', validators=[])
     proc = StringField('Procedure', validators=[])
     ref = StringField('References', validators=[])
 

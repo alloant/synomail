@@ -25,15 +25,19 @@ from app.forms.note import NoteForm
 bp = Blueprint('register', __name__)
 
 filter_notes = ""
+lasturl = ""
 
-def newNote(user,reg,sql,ref = None):
+def newNote(user,reg,ref = None):
     rg = reg.split('_')
     # Get new number for the note. Here getting the las number in that register
+    sender = aliased(User,name="sender_user")
     if rg[0] == 'min':
-        num = db.session.scalars( select(func.max(literal_column("num"))).select_from(sql.where(and_(Note.year==datetime.today().year,Note.sender==current_user))) ).first()
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg=='min',Note.year==datetime.today().year,Note.sender==current_user))) )
+    elif rg[0] == 'cl':
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,User.alias==rg[2],Note.flow=='in'))) )
     else:
-        num = db.session.scalars( select(func.max(literal_column("num"))).select_from(sql.where(Note.year==datetime.today().year)) ).first()
-    
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,Note.reg==rg[2],Note.flow=='out'))) )
+
     # Now adding +1 to num or start numeration of the year
     if num:
         num += 1
@@ -57,17 +61,28 @@ def newNote(user,reg,sql,ref = None):
     elif rg[0] == 'min':
         folder = user.alias
         nt = Note(num=num,sender_id=user.id,reg=rg[0])
-        if ref:
-            rf = db.session.scalar(select(Note).where(Note.id==ref))
-            nt.ref.append(rf)
     else: # Note created by a cr dr
         folder = user.alias
-        nt = Note(num=num,sender_id=user.id,reg=rg[1])
+        nt = Note(num=num,sender_id=user.id,reg=rg[2])
     
-        if rg[1] in ['cg','asr']:
-            rec = db.session.scalar(select(User).where(User.alias==rg[1]))
+        if rg[2] in ['cg','asr']:
+            rec = db.session.scalar(select(User).where(User.alias==rg[2]))
             nt.receiver.append(rec)
     
+    if ref:
+        for irf in ref.split(","):
+            rf = db.session.scalar(select(Note).where(Note.id==irf))
+            if rf.reg == 'min':
+                for r in rf.ref:
+                    nt.ref.append(r)
+            else:
+                nt.ref.append(rf)
+
+    if rg[0] == 'min':
+        nt.path = f"/team-folders/Data/Minutas/{folder}/Minutas/{datetime.now().year}"
+    else:
+        nt.path = f"/team-folders/Data/Minutas/{folder}/Notes"
+
     db.session.add(nt)
     rst = db.session.commit()
     
@@ -77,11 +92,8 @@ def newNote(user,reg,sql,ref = None):
 
     new_note = db.session.scalars(sql.order_by(Note.id.desc())).first()
     
-    if rg[0] == 'min':
-        rst = create_folder(f"/team-folders/Data/Minutas/{new_note.year}/{folder}/Minutas",f"{new_note.note_folder}")
-    else:
-        rst = create_folder(f"/team-folders/Data/Minutas/{folder}/Notes",f"{new_note.note_folder}")
-    print(rst,ref)
+    rst = create_folder(new_note.path,new_note.note_folder)
+    
     if rst:
         new_note.permanent_link = rst['permanent_link']
     db.session.add(nt)
@@ -159,6 +171,7 @@ def sql_notes(reg, user, note = None, showAll = True):
     return sql
 
 def updateState(note,reg,alias,read_by):
+    rg = reg.split("_")
     inc = 1 if not alias in read_by else -1
 
     if rg[0] == 'des':
@@ -168,9 +181,9 @@ def updateState(note,reg,alias,read_by):
             note.state = 4
     elif rg[0] == 'cr' and rg[1] == 'out' and note.state < 2:
         note.state += inc
-    elif rg[0] == 'cl' and rg[1] == 'out' and note.state == 4:
+    elif rg[0] == 'cl' and rg[1] == 'in' and note.state == 4:
         note.state = 5
-    elif rg[0] == 'cl' and rg[1] == 'in' and note.state < 2:
+    elif rg[0] == 'cl' and rg[1] == 'out' and note.state < 2:
         note.state += inc
 
 
@@ -186,26 +199,30 @@ def register_output(args,output,showAll):
 
     
     global filter_notes
+    global lasturl
 
     sql = sql_notes(reg,current_user,h_note,showAll)
 
 
     if mark:
-        nt = db.session.scalars(sql.where(Note.fullkey==mark)).first()
+        nt = db.session.scalars(sql.where(Note.id==mark)).first()
         nt.done = 1 if nt.done == 0 else 0
         db.session.commit()
     elif read:
         nt = db.session.scalar(select(Note).where(Note.id==read))
+        
         read_by = nt.read_by.split(",") if nt.read_by else []
         
         alias = current_user.alias
-        if rg[0] == 'cl' and rg[1] == 'in':
+        if rg[0] == 'cl' and rg[1] == 'out':
             alias = rg[2]
         elif rg[0] == 'des':
             alias = f"des_{alias}"
 
+        print(nt,reg,alias,read_by)
         updateState(nt,reg,alias,read_by)
-
+        
+        
         if alias in read_by:
             read_by.remove(f"{alias}")
         else:
@@ -214,16 +231,34 @@ def register_output(args,output,showAll):
         nt.read_by = ",".join(read_by)
         db.session.commit()
     elif "newout" in output:
-        newNote(current_user,reg,sql)
+        newNote(current_user,reg)
     elif ref:
-        newNote(current_user,'min',sql,ref)
+        if rg[0] == 'min': # I am in minutas creating a note
+            minuta = db.session.scalar(select(Note).where(Note.id==ref))
+            refs = [str(minuta.id)]
+            for rf in minuta.ref:
+                refs.append(str(rf.id))
+            newNote(current_user,reg,",".join(refs))
+        else: # Creating a minuta from a note
+            newNote(current_user,reg,ref)
     elif 'addfiles' in output:
         nt = db.session.scalar(sql.where(Note.id==output['addfiles']))
 
         if not nt.permanent_link:
             rst = get_info(nt.path_note())
-            nt.permanent_link = rst['data']['permanent_link']
-            db.session.commit()
+            folder = None
+            if not rst:
+                rst = create_folder(nt.path,nt.note_folder)
+                if rst:
+                    folder = rst['permanent_link']
+            elif 'data' in rst:
+                folder = rst['data']['permanent_link']
+
+            if folder:
+                nt.permanent_link = folder
+                db.session.commit()
+            else:
+                flash(f'Could not create folder {nt.path_note()}')
 
         files = files_path(nt.path_note())
         
@@ -233,7 +268,6 @@ def register_output(args,output,showAll):
         
         if files:
             for file in files:
-                print(file)
                 if not file['display_path'] in ntfiles:
                     nt.addFile(File(path=file['display_path'],permanent_link=file['permanent_link']))
         
@@ -270,7 +304,10 @@ def reg_title(reg,note=None):
             return "Notes history"
         else:
             return f"Notes from {rg[2]} to cr" if rg[1] == 'out' else f"Notes from cr to {rg[2]}"
+    elif rg[0] == 'min':
+        return 'Minutas'
 
+@bp.route('/',methods=['POST','GET'])
 @bp.route('/register',methods=['POST','GET'])
 @login_required
 def register():
@@ -278,9 +315,23 @@ def register():
     note = request.args.get('note')
     reg = request.args.get('reg')
     title = request.args.get('title')
-    wantedurl = request.args.get('wantedurl')
 
     global filter_notes
+    global lasturl
+
+    if not reg:
+        if 'cr' in current_user.groups:
+            return redirect(url_for('register.register',reg='pen_in_'))
+        else:
+            for gp in current_user.groups:
+                if gp[:3] == 'cl_':
+                    break
+            
+            return redirect(url_for('register.register',reg=f'cl_in_{gp[3:]}'))
+    
+    if reg == 'lasturl':
+        return redirect(lasturl)
+
     output = request.form.to_dict()
     
     rg = reg.split("_")
@@ -314,7 +365,7 @@ def register():
     sql = register_output(request.args,output,showAll)
    
     if 'read' in output:
-        return redirect(wantedurl)
+        return redirect(lasturl)
 
     page = request.args.get('page', 1, type=int)
 
@@ -323,14 +374,14 @@ def register():
     prev_url = url_for('register.register', reg=reg, page=notes.prev_num, title=showAll) if notes.has_prev else None
     next_url = url_for('register.register', reg=reg, page=notes.next_num, title=showAll) if notes.has_next else None
     
-    return render_template('register/register.html',title=reg_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user, wantedurl = request.url,showAll=showAll)
+    #lasturl = request.url
+    lasturl = url_for('register.register',reg=reg,page=page)
+    return render_template('register/register.html',title=reg_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user,showAll=showAll)
 
 @bp.route('/edit_note', methods=['GET','POST'])
 @login_required
 def edit_note():
-    wantedurl = request.args.get('wantedurl')
     page = request.args.get('page',1,type=int)
-    wantedurl = f"{wantedurl}&page={page}"
     
     note_id = request.args.get('note')
     sender = aliased(User,name="sender_user")
@@ -339,11 +390,12 @@ def edit_note():
     form = NoteForm(request.form,obj=note)
     form.sender.choices = [note.sender]
 
+    global lasturl
 
-    if note.flow == 'in':
-        form.receiver.choices = [(user.alias,f"{user.alias} - {user.name}, ({user.u_groups})") for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(r'\bcr\b')).order_by(User.alias)).all()]
+    if note.flow == 'in' or note.reg == 'min':
+        form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(r'\bcr\b')).order_by(User.alias)).all()]
     else:
-        form.receiver.choices = [(user.alias,f"{user.alias} - {user.name}, ({user.u_groups})") for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(fr'\b{note.reg}\b')).order_by(User.alias)).all()]
+        form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(fr'\b{note.reg}\b')).order_by(User.alias)).all()]
     
     
     if request.method == 'POST' and form.validate():
@@ -351,6 +403,7 @@ def edit_note():
         note.n_date = form.n_date.data
         note.year = form.year.data
         note.content = form.content.data
+        note.comments = form.comments.data
         note.proc = form.proc.data
         note.permanent = form.permanent.data
         #note.sender = form.sender.data
@@ -377,7 +430,7 @@ def edit_note():
         db.session.commit()
         
         if not error:
-            return redirect(wantedurl)
+            return redirect(lasturl)
     
     else:
         form.ref.data = ",".join([r.fullkey for r in note.ref]) if note.ref else "" 
@@ -386,38 +439,4 @@ def edit_note():
         form.permanent.data = note.permanent
 
     return render_template('register/note_form.html', form=form, note=note, user=current_user)
-
-@bp.route('/add_files',methods=['POST','GET'])
-@login_required
-def add_files():
-    wantedurl = request.args.get('wantedurl')
-    fullkey = request.args.get('note')
-    output = request.form.to_dict()
-    path = request.args.get('dir')
-    
-    if 'cancel_files' in output:
-        return redirect(wantedurl)
-    elif 'accept_files' in output:
-        sender = aliased(User,name="sender_user")
-        nt = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==fullkey)).first()
-        print(output) 
-        for out in output:
-            if out[:7] == 'choose_':
-                nt.addFile(File(path=f"{path}/{out[7:]}",permanent_link=output[out]))
-                #nt.addFile(File(name=files_to_choose[int(data[1])]['name'],path=path,type=files_to_choose[int(data[1])]['type'],permanent_link=files_to_choose[int(data[1])]['permanent_link']))
-        db.session.commit()
-
-        return redirect(wantedurl)
-
-    
-    if not path:
-        path = "/mydrive"
-        
-    files_to_choose = files_path(path)
-
-    parent_path = path[:path.rfind("/")]
-    if parent_path:
-        files_to_choose = [{'type':'dir','name':'../','display_path':parent_path}] + files_to_choose
-    
-    return render_template('register/file_chooser.html',files=files_to_choose)
 

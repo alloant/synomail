@@ -23,7 +23,7 @@
         <tr>
       {% endif %}
         <td>
-          {% include 'register/table_read_by.html' %}
+          {% include 'register/table_buttons.html' %}
         </td>
         
         <td>
@@ -50,6 +50,9 @@
         {% endif %}
 
         <td>
+          {% if note.comments and note.is_involve(user) %}
+          <span data-bs-toggle="tooltip" title="{{note.comments}}"><i class="bi bi-file-earmark-text" style="color: OrangeRed;"></i></span>
+          {% endif %}
           {{ note.content }}
         </td>
        
@@ -58,7 +61,7 @@
             <a href="https://nas.prome.sg:5001/d/f/{{note.permanent_link}}" data-bs-toggle="tooltip" title="Folder" target="_blank"><i class="bi bi-folder" style="color: orange;"></i></a>
           {% endif %}
 
-          {% if user.admin or ((user == note.sender and user.alias in note.read_by.split(',') or '_ctr_' in reg and note.flow == 'in') ) %}
+          {% if user.admin or user == note.sender or 'cl_out' in reg %}
             <button type="submit" form="addfiles" class="btn p-0" data-bs-toggle="modal" data-bs-target="#wait" name="addfiles" value="{{note.id}}"><i class="bi bi-folder-plus" style="color: orange;"></i></button>
           {% endif%} 
 

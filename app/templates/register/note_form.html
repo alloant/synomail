@@ -39,6 +39,14 @@
                 {{ form.content(class="form-control") }}
               </div>
             </div>
+            {% if 'despacho' in user.groups %}
+            <div class="row p-2">
+              <div class="col">
+                {{ form.comments.label(class="form-label") }}
+                {{ form.comments(class="form-control") }}
+              </div>
+            </div>
+            {% endif %}
             <div class="row p-2">
               <div class="col">
                 {{ form.ref.label(class="form-label") }}

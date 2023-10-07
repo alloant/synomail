@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     u_groups = db.Column(db.String(200), default=False)
 
     email = db.Column(db.String(200), default='')
+    description = db.Column(db.String(200), default='')
     
     active = db.Column(db.Boolean, default=True)
     admin_active = db.Column(db.Boolean, default=False)
@@ -34,3 +35,10 @@ class User(UserMixin, db.Model):
             return True
         return False
 
+    @property
+    def fullName(self):
+        rst = f"{self.alias}"
+        if self.name: rst = f"{rst} - {self.name}"
+        if self.description: rst = f"{rst} ({self.description})"
+
+        return rst

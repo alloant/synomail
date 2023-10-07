@@ -34,7 +34,9 @@ class Note(NoteHtml,NoteNas,db.Model):
     content = db.Column(db.Text, default = '')
     proc = db.Column(db.String(15), default = '')
     ref = db.relationship('Note', secondary=note_ref, primaryjoin=note_ref.c.note_id==id, secondaryjoin=note_ref.c.ref_id==id, backref='notes') 
+    path = db.Column(db.String(150), default = '')
     permanent_link = db.Column(db.String(150), default = '')
+    comments = db.Column(db.Text, default = '')
     
     permanent = db.Column(db.Boolean, default=False)
     
@@ -194,12 +196,29 @@ class Note(NoteHtml,NoteNas,db.Model):
 
     def path_note(self):
         if self.reg == 'min':
+            return f"{self.path}/{self.year}/{self.note_folder}"
             return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}/{self.note_folder}"
         else:
+            return f"{self.path}/{self.year}/{self.note_folder}"
             return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
 
     def is_read(self,user):
-        return user.alias in self.read_by.split(",") or user.date > self.n_date
+        if user.date > self.n_date:
+            return not user.alias in self.read_by.split(",")
+        else:
+            return user.alias in self.read_by.split(",")
+
+
+    def is_involve(self,user):
+        return user in self.receiver
+
+    def rel_flow(self,reg):
+        rg = reg.split('_')
+
+        if rg[0] == 'cl':
+            return 'in' if self.flow == 'out' else 'out'
+        else:
+            return self.flow
 
     def is_bold(self,reg,user):
         flow = 'out' if '_ctr_' in reg else 'in'

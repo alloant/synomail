@@ -26,7 +26,15 @@ def login():
 
         login_user(user)
 
-        return redirect(url_for('register.register',reg='all'))
+        if 'cr' in user.groups:
+            return redirect(url_for('register.register',reg='pen_in_'))
+        else:
+            for gp in user.groups:
+                if gp[:3] == 'cl_':
+                    break
+            
+            return redirect(url_for('register.register',reg=f'cl_in_{gp[3:]}'))
+
     
     return render_template('auth/auth.html',login=True, form=form)
 
@@ -83,7 +91,6 @@ def logout():
 def edit_user():
     user_id = request.args.get('user')
     user = db.session.scalars(select(User).where(User.id==user_id)).first()
-    wantedurl = request.args.get('wantedurl')
  
     form = UserForm(request.form,obj=user)
 
@@ -101,7 +108,7 @@ def edit_user():
 
         db.session.commit()
 
-        return redirect(wantedurl)
+        return redirect(url_for('register.register',reg='lasturl'))
     else:
         form.active.data = user.active
         form.admin_active.data = user.admin_active
