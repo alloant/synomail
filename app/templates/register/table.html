@@ -7,7 +7,7 @@
         <th></th>
         <th>Date</th>
         <th>No</th>
-        {% if not '_ctr_' in reg %}
+        {% if not 'cl_' in reg %}
         <th>Dep</th>
         {% endif %}
         <th>Content</th>
@@ -17,11 +17,7 @@
     </thead>
     <tbody>
     {% for note in notes %}
-      {% if note.is_bold(reg,current_user) %}
-        <tr class="fw-bold">
-      {% else %}
-        <tr>
-      {% endif %}
+      {{ note.row_decoration(reg,user)|safe }}
         <td>
           {% include 'register/table_buttons.html' %}
         </td>
@@ -31,10 +27,17 @@
         </td>
         
         <td>
-          <a href="?reg={{reg.split('_')[0]}}_all_{{reg.split(' ')[2]}}&h_note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
+          {% if reg.split('_')[0] == 'min' %}
+            <a href="?reg=cr_all_{{reg.split('_')[2]}}&h_note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
+          {% else %}
+            <a href="?reg={{reg.split('_')[0]}}_all_{{reg.split('_')[2]}}&h_note={{note.id}}" target="_blank">{{ note.fullkey_html|safe }}</a>
+            {% if note.permanent %}
+              <span data-bs-toggle="tooltip" title="Only permanente"><i class="small bi bi-asterisk" style="color: red;"></i></span>
+            {% endif %}
+          {% endif %}
         </td>
        
-        {% if not '_ctr_' in reg %}
+        {% if not 'cl_' in reg %}
         <td>
           {% if note.flow == 'out' %}
             <span class="badge bg-primary">{{note.sender}}</span>
@@ -61,7 +64,7 @@
             <a href="https://nas.prome.sg:5001/d/f/{{note.permanent_link}}" data-bs-toggle="tooltip" title="Folder" target="_blank"><i class="bi bi-folder" style="color: orange;"></i></a>
           {% endif %}
 
-          {% if user.admin or user == note.sender or 'cl_out' in reg %}
+          {% if user.admin or user == note.sender or 'cl_out' in reg and note.state == 0 %}
             <button type="submit" form="addfiles" class="btn p-0" data-bs-toggle="modal" data-bs-target="#wait" name="addfiles" value="{{note.id}}"><i class="bi bi-folder-plus" style="color: orange;"></i></button>
           {% endif%} 
 

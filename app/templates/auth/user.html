@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
   <div class="row">
-    <h1 class="text-center">Modify user {{ user.alias }}</h1>
+    <h1 class="text-center">Editing user {{ user.alias }}</h1>
   </div>
 
   <div class="row bg-light p-2 rounded-3 border border-secondary">
@@ -26,7 +26,13 @@
         <div class="row mb-3">
           {{ form.email(class="form-control", placeholder="Your Email") }}
         </div>
-        
+       
+        {% if 'scr' in user.groups %}
+          <div class="row mb-3">
+            {{ form.local_path(class="form-control", placeholder="Local folder for emls") }}
+          </div>
+        {% endif %}
+ 
         {% if 'admin' in user.u_groups.split(',') %}
           <div class="row mb-3">
             {{ form.u_groups(class="form-control") }}

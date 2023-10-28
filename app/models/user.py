@@ -13,9 +13,12 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(200), default='')
     alias = db.Column(db.String(20), unique=True)
     u_groups = db.Column(db.String(200), default=False)
+    order = db.Column(db.Integer, default=0)
 
     email = db.Column(db.String(200), default='')
     description = db.Column(db.String(200), default='')
+    
+    local_path = db.Column(db.String(200), default='')
     
     active = db.Column(db.Boolean, default=True)
     admin_active = db.Column(db.Boolean, default=False)
@@ -24,6 +27,12 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return self.alias
+    
+    def __lt__(self,other):
+        return self.order < other.order
+
+    def __gt__(self,other):
+        return self.order > other.order
 
     @property
     def groups(self):

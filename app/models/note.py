@@ -1,6 +1,8 @@
 from app import db
 from datetime import datetime, date
 
+from flask import flash
+
 from sqlalchemy import case, and_, or_, not_, select, type_coerce, literal_column, func, union
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.sql import text
@@ -9,6 +11,7 @@ from app.models.html.note import NoteHtml
 from app.models.nas.note import NoteNas
 from app.models.file import File
 from app.models.user import User
+from app.models.nas.nas import create_folder, upload_path, convert_office, files_path, get_info
 
 #from app.models.note_nas import NoteNas
 note_ref = db.Table('note_ref',
@@ -145,30 +148,40 @@ class Note(NoteHtml,NoteNas,db.Model):
         
         return False
 
-    @user_can_see.expression
-    def user_can_see(cls, user: User, reg: str):
-        rg = reg.split('_')
-        if rg[0] == 'des':
-            return and_(cls.flow == rg[1],cls.state < 3, cls.state > 0)
-        elif rg[0] == 'cl':
-            if f"cl_{rg[2]}" in user.groups:
-                return case(
-                    (cls.permanent,'per' in user.groups),
-                    (and_(cls.state<3,cls.flow=='out'),False),
-                    (literal_column(f"sender_user.alias = '{rg[2]}'"), True),
-                    (literal_column(f"receiver_user.alias = '{rg[2]}'"), True),
-                    else_=False,
-                )
-        elif 'cr' in user.groups: # is a member of cr
-            return case(
-                (cls.permanent,'per' in user.groups),
-                (literal_column(f"sender_user.alias = '{user.alias}'"),True),
-                (cls.state>=3,True),
-                else_=False
-            )
-        
-        return False
 
+    @user_can_see.expression
+    def user_can_see(cls,user,reg):
+        rg = reg.split('_')
+        cond = [case((cls.permanent,'per' in user.groups),else_=True)]
+        
+        if rg[0] == 'box':
+            cond.append(cls.state==1)
+            cond.append(cls.reg!='min')
+        elif rg[0] == 'des':
+            cond.append(cls.state>1)
+            cond.append(cls.state<4)
+            cond.append(cls.reg!='min')
+        elif rg[0] == 'pen':
+            cond.append(cls.reg!='min')
+            cond.append(cls.state>3)
+            cond.append(or_(and_(cls.state==0,literal_column(f"sender_user.alias = 'user.alias'")),literal_column(f"receiver_user.alias = '{user.alias}'")))
+        else:
+            cond.append(or_(cls.state>3,cls.sender_id==user.id))
+            if rg[0] == 'cl':
+                cond.append(cls.reg=='ctr')
+                if rg[1] == 'out': #it is a note from ctr to cg
+                    cond.append(literal_column(f"sender_user.alias = '{rg[2]}'"))
+                else:
+                    cond.append(literal_column(f"receiver_user.alias = '{rg[2]}'"))
+            elif rg[0] == 'min':
+                cond.append(cls.reg=='min')
+                cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),literal_column(f"receiver_user.alias = '{user.alias}'")))
+            else:
+                if rg[1] != 'all':
+                    cond.append(cls.reg==rg[2])
+                    cond.append(cls.flow==rg[1])
+
+        return and_(*cond)
 
     def __repr__(self):
         return f'<{self.fullkeyto} "{self.content}">'
@@ -193,16 +206,34 @@ class Note(NoteHtml,NoteNas,db.Model):
             return f"Minuta_{num}"
         else:
             return f"{name}_{num}"
-
+    
+    @property
     def path_note(self):
+        return f"{self.path}/{self.note_folder}"
+
         if self.reg == 'min':
             return f"{self.path}/{self.year}/{self.note_folder}"
             return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}/{self.note_folder}"
         else:
             return f"{self.path}/{self.year}/{self.note_folder}"
             return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
+    
+    @property
+    def path_parent(self):
+        if self.reg == 'min':
+            return f"{self.path}/{self.year}"
+            return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}"
+        else:
+            #return f"{self.path}/{self.year}/"
+            return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}"
+
 
     def is_read(self,user):
+        if isinstance(user,str): # This is a ctr or des
+            alias = user if user[:4] == 'des_' else user.split('_')[2]
+            print(user,alias,';;;;',self.read_by.split(","))
+            return alias in self.read_by.split(",")
+
         if user.date > self.n_date:
             return not user.alias in self.read_by.split(",")
         else:
@@ -227,6 +258,110 @@ class Note(NoteHtml,NoteNas,db.Model):
             return not self.is_read(user)
         else:
             return self.state == 0
+
+    def updateRead(self,user):
+        rb = self.read_by.split(',') if self.read_by else []
+        alias = user if isinstance(user,str) else user.alias
+
+        if alias in rb:
+            rb.remove(alias)
+            inc = -1
+        else:
+            rb.append(alias)
+            inc = 1
+        
+        self.read_by = ",".join(rb)
+        return inc
+
+    def updateState(self,reg,user,again=False):
+        rg = reg.split("_")
+        if rg[0] == 'box': # Is the scr getting mail from cg, asr, ctr or r
+            # Here we move to Archive and if the move is succesful we put state 2
+            self.state = 2
+        elif rg[0] == 'des': # Here states are only 2 or 3
+            self.state += self.updateRead(f"des_{user.alias}")
+        elif self.reg in ['cg','asr','r','ctr']: #Here the states could be 4-6
+            if self.rel_flow(reg) == 'in':
+                if self.state < 6:
+                    self.state += 1
+                else:
+                    self.state -= 1
+            else: # Is out. Only to pass from 0 to 1
+                if self.state == 0:
+                    self.state = 1
+                elif self.state == 1:
+                    self.state = 0
+        elif self.reg == 'min': #Minuta is different for sender and the rest
+            if self.sender == user:
+                if self.state == 0:
+                    self.state = 4
+                elif self.state == 4:
+                    self.state = 0
+                elif self.state == 2:
+                    if again:
+                        self.state = 4
+                        self.read_by = self.sender.alias
+                    else:
+                        self.state = 6
+            else:
+                #rb = self.received_by.split('_') if self.received_by != '' else []
+                rb = self.read_by.split('_') if self.read_by != '' else []
+                has_next = False
+                self.receiver.sort()
+                for i,rec in enumerate(self.receiver):
+                    if not rec.id in rb:
+                        rb.append(str(rec.alias))
+                        has_next = True
+                        self.read_by = ",".join(rb)
+                        break
+                if i + 1 == len(self.receiver): has_next = False
+                
+                if not has_next:
+                    self.state = 2
+
+    def getPermanentLink(self): # Gets the link and creates the folder if needed
+        rst = get_info(self.path_note)
+        link = None
+        if not rst:
+            rst = create_folder(self.path_parent,self.note_folder)
+            if rst:
+                link = rst['permanent_link']
+        elif 'data' in rst:
+            link = rst['data']['permanent_link']
+
+        if link:
+            self.permanent_link = link
+            db.session.commit()
+            return True
+        else:
+            flash(f'Could not create folder {self.path_note}')
+            return False
+
+    def updateFiles(self):
+        if not self.permanent_link: # There is no permanent_link, I should get it first
+            rst = self.getPermanentLink()
+        else:
+            rst = True
+        
+        if not rst:
+            return False
+
+        files = files_path(self.path_note)
+        print(self.path_note,files)
+        if not files:
+            return False
+
+        ntfiles = []
+        for file in self.files:
+            ntfiles.append(file.path)
+            
+        for file in files:
+            if not file['name'] in ntfiles:
+                self.addFile(File(path=file['name'],permanent_link=file['permanent_link']))
+    
+        db.session.commit()
+
+        
 
 
 

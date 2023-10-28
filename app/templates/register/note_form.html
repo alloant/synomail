@@ -1,82 +1,100 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="text-center">{{ note.fullkey }}</h1>
+<h1 class="text-center display-4 mb-5 border rounded bg-secondary text-white">{{ note.fullkey }}</h1>
 <form method="POST">
     {{ form.csrf_token }}
     <fieldset class="form-group">
    
-    <div class="container-fluid mt-5">
-      <div class="row">
-        <div class="col-8">
+    <div class="row m-2" style="background-color: #eeeeee;">
+      <div class="col-8 p-2">
+        <h3 class="mb-4">Data</h3>
+        <div class="d-flex flex-wrap mb-4 mt-2">
+          {% if user.admin and 'despacho' in user.groups %}
+            <div class="container">
+              {{ form.permanent(class="form-check-input") }}
+              {{ form.permanent.label(class="form-check-label") }}
+            </div>
+          {% endif %}
           <div class="container">
-            <div class="row p-2">
-              <div class="col-2">
-                {{ form.permanent(class="form-check-input") }}
-                {{ form.permanent.label(class="form-check-label") }}
-              </div><div class="col-6">
-                {{ form.n_date.label(class="form-label") }}
-                {{ form.n_date(class="form-control") }}
-              </div>
-              <div class="col-4">
-                {{ form.year.label(class="form-label") }}
-                {{ form.year(class="form-control") }}
-              </div>
-            </div>
-            <div class="row p-2">
-             <div class="col-4">
-                {{ form.proc.label(class="form-label") }}
-                {{ form.proc(class="form-control") }}
-              </div>
-              <div class="col-8">
-                {{ form.sender.label(class="form-label") }}
-                {{ form.sender(class="form-control") }}
-              </div>
-            </div>
-            <div class="row p-2">
-              <div class="col">
-                {{ form.content.label(class="form-label") }}
-                {{ form.content(class="form-control") }}
-              </div>
-            </div>
-            {% if 'despacho' in user.groups %}
-            <div class="row p-2">
-              <div class="col">
-                {{ form.comments.label(class="form-label") }}
-                {{ form.comments(class="form-control") }}
-              </div>
-            </div>
-            {% endif %}
-            <div class="row p-2">
-              <div class="col">
-                {{ form.ref.label(class="form-label") }}
-                {{ form.ref(class="form-control") }}
-              </div>
-            </div> 
+            {{ form.n_date.label(class="form-label") }}
+            {{ form.n_date(class="form-control") }}
+          </div>
+          <div class="container">
+            {{ form.year.label(class="form-label") }}
+            {{ form.year(class="form-control") }}
+          </div>
+          <div class="container">
+            {{ form.proc.label(class="form-label") }}
+            {{ form.proc(class="form-control") }}
+          </div>
+          <div class="container">
+            {{ form.sender.label(class="form-label") }}
+            {{ form.sender(class="form-control") }}
           </div>
         </div>
-  
+        <div class="container mb-4">
+          {{ form.content.label(class="form-label") }}
+          {{ form.content(class="form-control") }}
+        </div>
+        {% if 'despacho' in user.groups %}
+          <div class="container mb-4">
+            {{ form.comments.label(class="form-label") }}
+            {{ form.comments(class="form-control") }}
+          </div>
+        {% endif %}
+        <div class="container mb-4">
+          {{ form.ref.label(class="form-label") }}
+          {{ form.ref(class="form-control") }}
+        </div>
+        <div class="container">
+          {{ form.submit(class="btn btn-primary")}}
+        </div>
+      </div>
+      
+      <div class="col-4 p-2">
         {% if ('cr' in user.groups and (note.flow == 'in' or note.reg in ['r','ctr'])) or 'admin' in user.groups %}
-        <div class="col-4 border rounded p-2">
-          <h3>Receiver</h3>
-          <div class="form-check">
+          <h3 class="mb-4">Receiver</h3>
+          <input class="form-control mb-2" id="recInput" type="text" placeholder="Search..">
+          
+          <div class="">
+            <ul class="list-group" id="recList">
             {% for rec in form.receiver %}
-              {{ rec(class="form-check-input") }}
-              {{ rec.label(class="form-check-label") }}
-              </br>
+              {% if rec.checked %} 
+                <li class="list-group-item p-1">
+                  {{ rec(class="form-check-input") }}
+                  {{ rec.label(class="form-check-label") }}
+                </li>
+              {% endif %}
             {% endfor %}
+            {% for rec in form.receiver %}
+              {% if not rec.checked %} 
+                <li class="list-group-item p-1">
+                  {{ rec(class="form-check-input") }}
+                  {{ rec.label(class="form-check-label") }}
+                </li>
+              {% endif %}
+            {% endfor %}
+            </ul>
           </div>
-        </div>
+
+          <script>
+          $(document).ready(function(){
+            $("#recInput").on("keyup", function() {
+              var value = $(this).val().toLowerCase();
+              $("#recList li").filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+              });
+            });
+          });
+          </script>
+
         {% endif %}
       </div>
-    
-    
+    </div>
+
     </fieldset>
 
-    <div class="form-group p-2">
-      {{ form.submit(class="btn btn-primary")}}
-    </div>
-  </div>
 </form>
 
 {% endblock %}

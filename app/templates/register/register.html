@@ -7,8 +7,30 @@
   {{title}}
 </h1>
 
-<div class="row">
+<div id="wait" class="modal">
+  {% include 'wait.html' %}
+</div>
 
+{% if reg == 'box_in_' %}
+  <div id="upfile" class="modal">
+    {% include 'upload_file.html' %}
+  </div>
+  <div class="row">
+    <form class="d-flex p-2" method="POST">
+      <input href="#upfile" class="btn btn-primary me-2" data-bs-toggle="modal" name="checkeml" value="Check for eml">
+    </form>
+  </div>
+{% endif %}
+
+{% if reg == 'box_out_' %}
+  <div class="row">
+    <form class="d-flex p-2" method="POST">
+      <input href="#wait" type="submit" class="btn btn-primary me-2" data-bs-toggle="modal" name="geneml" value="Generate eml">
+    </form>
+  </div>
+{% endif %}
+
+<div class="row">
   <div class="col">
     {% include 'register/table_search.html' %}
   </div>

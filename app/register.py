@@ -9,6 +9,9 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import text
 
 from wtforms import SelectField
+#from flask_wtf import FlaskForm
+#from flask_wtf.file import MultipleFileField, FileRequired
+from werkzeug.utils import secure_filename
 
 from docx import Document
 from tempfile import NamedTemporaryFile
@@ -22,6 +25,10 @@ from app.models.nas.nas import create_folder, upload_path, convert_office, files
 
 from app.forms.note import NoteForm
 
+from app.syneml import read_eml
+#class FileForm(FlaskForm):
+#    files = MultipleFileField(validators=[FileRequired()])
+
 bp = Blueprint('register', __name__)
 
 filter_notes = ""
@@ -34,9 +41,9 @@ def newNote(user,reg,ref = None):
     if rg[0] == 'min':
         num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg=='min',Note.year==datetime.today().year,Note.sender==current_user))) )
     elif rg[0] == 'cl':
-        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,User.alias==rg[2],Note.flow=='in'))) )
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,literal_column(f"sender_user.alias = '{rg[2]}'"),Note.flow=='in'))) )
     else:
-        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,Note.reg==rg[2],Note.flow=='out'))) )
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,literal_column(f"sender_user.alias = '{rg[2]}'"),Note.flow=='out'))) )
 
     # Now adding +1 to num or start numeration of the year
     if num:
@@ -92,7 +99,7 @@ def newNote(user,reg,ref = None):
 
     new_note = db.session.scalars(sql.order_by(Note.id.desc())).first()
     
-    rst = create_folder(new_note.path,new_note.note_folder)
+    rst = create_folder(new_note.path_parent,new_note.note_folder)
     
     if rst:
         new_note.permanent_link = rst['permanent_link']
@@ -102,14 +109,15 @@ def newNote(user,reg,ref = None):
 def sql_notes(reg, user, note = None, showAll = True):
     sender = aliased(User,name="sender_user")
     receiver = aliased(User,name="receiver_user")
+    
+    rg = reg.split('_')
 
     sql = select(Note).join(Note.sender.of_type(sender))
     sql = sql.outerjoin(Note.receiver.of_type(receiver))
     
     sql = sql.where(Note.user_can_see(user,reg))
-    rg = reg.split('_')
 
-    if note:
+    if note: #Here is the history of a note sql
         qr = text(f"with R as ( \
                 select note_id as n, ref_id as r from note_ref where note_id = {note} or ref_id = {note} \
                 UNION \
@@ -138,98 +146,51 @@ def sql_notes(reg, user, note = None, showAll = True):
         
         sql = sql.where(or_(*fn))
 
-    else:
-        if rg[1] in ['in','out']: # Normal register cr or ctr
-            if rg[0] == 'cl':
-                flow = 'in' if rg[1] == 'out' else 'out'
-            else:
-                flow = rg[1]
-            
-            sql = sql.where(Note.flow==flow)
-
-        if rg[0] == 'cr':
-            sql = sql.where(Note.reg==rg[2])
-
-        if rg[0] == 'cl':
-            ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
-            sql = sql.where(or_(Note.sender==ctr,Note.receiver.contains(ctr)))
-        
-        if rg[0] == 'pen':
-            sql = sql.where(or_(literal_column(f"receiver_user.alias = '{current_user.alias}'")))
-
-        if rg[0] == 'min':
-            sql = sql.where(Note.reg==rg[0])
-
-        if not showAll:
-            sql = sql.where(Note.done==False)
+    elif not showAll:
+        sql = sql.where(Note.state<6)
 
     sql = sql.group_by(Note.id)
 
-        
-    sql = sql.order_by(Note.date.desc(), Note.num.desc())
+    if rg[0] in ['min','pen']:
+        sql = sql.order_by(Note.state,Note.date.desc(), Note.num.desc())
+    else:
+        sql = sql.order_by(Note.date.desc(), Note.num.desc())
 
     return sql
-
-def updateState(note,reg,alias,read_by):
-    rg = reg.split("_")
-    inc = 1 if not alias in read_by else -1
-
-    if rg[0] == 'des':
-        note.state += inc if rg[1] == 'in' else 2*inc
-    elif rg[0] in ['cr','pen'] and rg[1] == 'in':
-        if note.state == 3 and current_user in note.receivers:
-            note.state = 4
-    elif rg[0] == 'cr' and rg[1] == 'out' and note.state < 2:
-        note.state += inc
-    elif rg[0] == 'cl' and rg[1] == 'in' and note.state == 4:
-        note.state = 5
-    elif rg[0] == 'cl' and rg[1] == 'out' and note.state < 2:
-        note.state += inc
-
 
 def register_output(args,output,showAll):
     reg = args.get('reg','all')
     rg = reg.split("_")
     h_note = args.get('h_note') 
-    ref = args.get('ref') 
-    note = args.get('note') 
-    mark = args.get('mark') 
+    
+    sql = sql_notes(reg,current_user,h_note,showAll)
+    
+    state = args.get('state')
+    cldone = args.get('cldone')
     read = args.get('read')
-    action = args.get('action')
-
+    ref = args.get('ref') 
     
     global filter_notes
     global lasturl
 
-    sql = sql_notes(reg,current_user,h_note,showAll)
-
-
-    if mark:
-        nt = db.session.scalars(sql.where(Note.id==mark)).first()
-        nt.done = 1 if nt.done == 0 else 0
-        db.session.commit()
-    elif read:
+    if read:
         nt = db.session.scalar(select(Note).where(Note.id==read))
-        
-        read_by = nt.read_by.split(",") if nt.read_by else []
-        
-        alias = current_user.alias
-        if rg[0] == 'cl' and rg[1] == 'out':
-            alias = rg[2]
-        elif rg[0] == 'des':
-            alias = f"des_{alias}"
-
-        print(nt,reg,alias,read_by)
-        updateState(nt,reg,alias,read_by)
-        
-        
-        if alias in read_by:
-            read_by.remove(f"{alias}")
-        else:
-            read_by.append(f"{alias}")
-
-        nt.read_by = ",".join(read_by)
+        nt.updateRead(current_user)
         db.session.commit()
+    elif cldone:
+        ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
+        nt = db.session.scalar(select(Note).where(Note.id==cldone))
+        nt.updateRead(ctr)
+        db.session.commit()
+    elif state:
+        again = True if args.get('again') else False
+        nt = db.session.scalar(select(Note).where(Note.id==state))
+        nt.updateState(reg,current_user,again)
+        db.session.commit()
+    elif "checkeml" in output:
+        pass
+    elif "geteml" in output:
+        pass
     elif "newout" in output:
         newNote(current_user,reg)
     elif ref:
@@ -243,36 +204,9 @@ def register_output(args,output,showAll):
             newNote(current_user,reg,ref)
     elif 'addfiles' in output:
         nt = db.session.scalar(sql.where(Note.id==output['addfiles']))
+        nt.updateFiles()
 
-        if not nt.permanent_link:
-            rst = get_info(nt.path_note())
-            folder = None
-            if not rst:
-                rst = create_folder(nt.path,nt.note_folder)
-                if rst:
-                    folder = rst['permanent_link']
-            elif 'data' in rst:
-                folder = rst['data']['permanent_link']
-
-            if folder:
-                nt.permanent_link = folder
-                db.session.commit()
-            else:
-                flash(f'Could not create folder {nt.path_note()}')
-
-        files = files_path(nt.path_note())
-        
-        ntfiles = []
-        for file in nt.files:
-            ntfiles.append(file.path)
-        
-        if files:
-            for file in files:
-                if not file['display_path'] in ntfiles:
-                    nt.addFile(File(path=file['display_path'],permanent_link=file['permanent_link']))
-        
-            db.session.commit()
-
+    # Find filter in fullkey, sender, receivers or content
     if filter_notes:
         fn = [
             Note.fullkey.contains(filter_notes),
@@ -311,14 +245,15 @@ def reg_title(reg,note=None):
 @bp.route('/register',methods=['POST','GET'])
 @login_required
 def register():
-    page = request.args.get('page', 1, type=int)
     note = request.args.get('note')
     reg = request.args.get('reg')
-    title = request.args.get('title')
+    rg = reg.split("_")
 
+    # Global variables. We need the last filter and lasurl to go back after editing a note, for example
     global filter_notes
     global lasturl
 
+    # This is use when someone puts and invalid url without reg
     if not reg:
         if 'cr' in current_user.groups:
             return redirect(url_for('register.register',reg='pen_in_'))
@@ -328,22 +263,35 @@ def register():
                     break
             
             return redirect(url_for('register.register',reg=f'cl_in_{gp[3:]}'))
-    
+
+    # Sending to last url when needed
     if reg == 'lasturl':
         return redirect(lasturl)
 
     output = request.form.to_dict()
-    
-    rg = reg.split("_")
-    
-    if title:
-        showAll = True if title=='True' else False
-    else:
-        showAll = False if rg[0] == 'pen' and not note else True
-    
-    if 'showAll' in output:
-        showAll = True if output['showAll'] == 'on' else False
 
+    if 'upload' in output:
+        files = request.files.getlist('files')
+        for file in files:
+            if file.filename.split('.')[-1] == 'eml':
+                read_eml(file.read())
+    
+    # To control the showAll button. We start as False in pendings and minutas
+    showAll = request.args.get('showAll')
+    if showAll != None:
+        showAll = True if showAll == 'True' else False
+    else:
+        showAll = False if rg[0] in ['pen','min'] and not note else True
+
+    # If we have just clicked in showAll
+    if 'notes_filter' in output:
+        if output['notes_filter'] == "":
+            if 'showAll' in output:
+                showAll = True
+            else:
+                showAll = False
+
+    # Security check. See if the user has access to that register
     if rg[0] == 'des':
         if not 'despacho' in current_user.groups:
             return redirect(url_for('register.register', reg='all', page=1))
@@ -354,6 +302,7 @@ def register():
         if not f'cl_{rg[2]}' in current_user.groups:
             return redirect(url_for('register.register', reg='all', page=1))
     
+    # If have just put a new filter
     if 'notes_filter' in output:
         if filter_notes != output['notes_filter']:
             filter_notes = output['notes_filter']
@@ -361,7 +310,7 @@ def register():
     elif not request.args.get('page'):
         filter_notes = ""
    
-    
+    # Getting the main sql for the register and doing other operations like new, edit...   
     sql = register_output(request.args,output,showAll)
    
     if 'read' in output:
@@ -369,10 +318,9 @@ def register():
 
     page = request.args.get('page', 1, type=int)
 
-
     notes = db.paginate(sql, per_page=30)
-    prev_url = url_for('register.register', reg=reg, page=notes.prev_num, title=showAll) if notes.has_prev else None
-    next_url = url_for('register.register', reg=reg, page=notes.next_num, title=showAll) if notes.has_next else None
+    prev_url = url_for('register.register', reg=reg, page=notes.prev_num, showAll=showAll) if notes.has_prev else None
+    next_url = url_for('register.register', reg=reg, page=notes.next_num, showAll=showAll) if notes.has_next else None
     
     #lasturl = request.url
     lasturl = url_for('register.register',reg=reg,page=page)
@@ -411,7 +359,8 @@ def edit_note():
         for n,user in enumerate(reversed(note.receiver)):
             if not user.alias in form.receiver.data:
                 note.receiver.remove(user)
- 
+
+        
         for user in form.receiver.data:
             rec = db.session.scalars(select(User).where(User.alias==user)).first()
             if not rec in note.receiver:
@@ -437,6 +386,6 @@ def edit_note():
         for rec in note.receiver:
             form.receiver.data.append(rec.alias)
         form.permanent.data = note.permanent
-
+    
     return render_template('register/note_form.html', form=form, note=note, user=current_user)
 

@@ -41,12 +41,18 @@
         <img src="static/icons/briefcase.svg" width="35vmin" height="35vmin">
       </a>
     </div>
-    
-    <div class="">
-      <a href="/register?reg=des_out_" class="nav-link link-light py-1 py-lg-3 px-1" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Outbox">
+    {% endif %}
+
+    {% if 'scr' in current_user.groups %}
+    <div class="border-top">
+      <a href="/register?reg=box_in_" class="nav-link link-light py-1 py-lg-3 px-1" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Inbox">
+        <img src="static/icons/inbox.svg" width="35vmin" height="35vmin">
+      </a>
+      <a href="/register?reg=box_out_" class="nav-link link-light py-1 py-lg-3 px-1" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Outbox">
         <img src="static/icons/outbox.svg" width="35vmin" height="35vmin">
       </a>
-    </div>{% endif %}
+    </div>
+    {% endif %}
 
     {% for gp in current_user.groups %}
       {% if gp[:3] == 'cl_' %}

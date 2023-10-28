@@ -26,6 +26,7 @@ class UserForm(Form):
     name = StringField('Name', [validators.Length(min=4, max=40)])
     alias = StringField('User', [validators.Length(min=3, max=25)])
     email = StringField('Email Address')
+    local_path = StringField('Local folder to download/upload emls')
     u_groups = StringField('Groups')
     active = BooleanField('User is active')
     admin_active = BooleanField('Admin mode on')
