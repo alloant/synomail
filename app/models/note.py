@@ -166,8 +166,8 @@ class Note(NoteHtml,NoteNas,db.Model):
             cond.append(cls.state>3)
             cond.append(or_(and_(cls.state==0,literal_column(f"sender_user.alias = 'user.alias'")),literal_column(f"receiver_user.alias = '{user.alias}'")))
         else:
-            cond.append(or_(cls.state>3,cls.sender_id==user.id))
             if rg[0] == 'cl':
+                cond.append(or_(cls.state>3,cls.sender_id==user.id))
                 cond.append(cls.reg=='ctr')
                 if rg[1] == 'out': #it is a note from ctr to cg
                     cond.append(literal_column(f"sender_user.alias = '{rg[2]}'"))
@@ -175,8 +175,10 @@ class Note(NoteHtml,NoteNas,db.Model):
                     cond.append(literal_column(f"receiver_user.alias = '{rg[2]}'"))
             elif rg[0] == 'min':
                 cond.append(cls.reg=='min')
-                cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),literal_column(f"receiver_user.alias = '{user.alias}'")))
+                cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),cls.received_by.contains(user.alias)))
+                #cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),literal_column(f"receiver_user.alias = '{user.alias}'")))
             else:
+                cond.append(or_(cls.state>3,cls.sender_id==user.id))
                 if rg[1] != 'all':
                     cond.append(cls.reg==rg[2])
                     cond.append(cls.flow==rg[1])
@@ -294,6 +296,9 @@ class Note(NoteHtml,NoteNas,db.Model):
         elif self.reg == 'min': #Minuta is different for sender and the rest
             if self.sender == user:
                 if self.state == 0:
+                    self.receiver.sort(reverse=True)
+                    if len(self.receiver) > 0:
+                        self.received_by = f"{self.receiver[0].alias}"
                     self.state = 4
                 elif self.state == 4:
                     self.state = 0
@@ -304,26 +309,26 @@ class Note(NoteHtml,NoteNas,db.Model):
                     else:
                         self.state = 6
             else:
-                #rb = self.received_by.split('_') if self.received_by != '' else []
                 rb = self.read_by.split('_') if self.read_by != '' else []
+                rb.append(user.alias)
+                self.read_by = ",".join(rb)
+                self.receiver.sort(reverse=True)
                 has_next = False
-                self.receiver.sort()
-                for i,rec in enumerate(self.receiver):
-                    if not rec.id in rb:
-                        rb.append(str(rec.alias))
+                for rec in self.receiver:
+                    if not rec.alias in rb:
+                        self.received_by += f",{rec.alias}"
                         has_next = True
-                        self.read_by = ",".join(rb)
                         break
-                if i + 1 == len(self.receiver): has_next = False
                 
                 if not has_next:
                     self.state = 2
 
+                
     def getPermanentLink(self): # Gets the link and creates the folder if needed
         rst = get_info(self.path_note)
         link = None
         if not rst:
-            rst = create_folder(self.path_parent,self.note_folder)
+            rst = create_folder(self.path,self.note_folder)
             if rst:
                 link = rst['permanent_link']
         elif 'data' in rst:

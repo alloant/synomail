@@ -178,11 +178,12 @@ def _upload_path(synd,file,dest):
     return synd.upload_file(file, dest_folder_path=dest)
 
 def _create_folder(synd,path,folder):
-    print('Starting folder')
+    print('Starting folder',path)
     files = files_path(path)
     folder_exists = False
-    print('exists',folder_exists)
+    print(files)
     for fl in files:
+        print(fl)
         if fl['name'] == folder:
             folder_exists = True
             break

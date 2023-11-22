@@ -168,7 +168,7 @@ class NoteHtml(object):
                         a = ET.Element('a',attrib={'href':f'?reg={reg}&state={self.id}','data-bs-toggle':'tooltip','title':'Pass to the next one'})
                         i = ET.Element('i',attrib={'class':'bi bi-hourglass-split','style':'color: red;'})
                     else: 
-                        a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':'Circulating ({self.read_by})'})
+                        a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':f'Circulating ({self.read_by})'})
                         i = ET.Element('i',attrib={'class':'bi bi-hourglass-split','style':'color: gray;'})
                 elif self.state == 6:
                     a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':'Done'})

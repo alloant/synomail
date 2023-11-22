@@ -46,8 +46,11 @@ def write_eml(rec,note,path_download):
 
 
 def read_eml(file_eml,emails = None):
-    ep = eml_parser.EmlParser(include_attachment_data=True,include_raw_body=True)
-    parsed_eml = ep.decode_email_bytes(file_eml)
+    #ep = eml_parser.EmlParser(include_attachment_data=True,include_raw_body=True)
+    #parsed_eml = ep.decode_email_bytes(file_eml)
+    parsed_eml = eml_parser.parser.decode_email(file_eml,include_attachment_data=True,include_raw_body=True)
+    #ep = eml_parser.EmlParser(include_attachment_data=True,include_raw_body=True)
+    #parsed_eml = ep.decode_email(file_eml)
     #parsed_eml = eml_parser.parser.decode_email_bytes(file_eml,include_attachment_data=True,include_raw_body=True)
     sender = parsed_eml['header']['from']
     subject = parsed_eml['header']['subject']

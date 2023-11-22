@@ -1,6 +1,7 @@
 # main.py
 from datetime import datetime
 import re
+import os
 
 from flask import Blueprint, render_template, request, url_for, redirect, flash
 from flask_login import login_required, current_user
@@ -43,7 +44,7 @@ def newNote(user,reg,ref = None):
     elif rg[0] == 'cl':
         num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,literal_column(f"sender_user.alias = '{rg[2]}'"),Note.flow=='in'))) )
     else:
-        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,literal_column(f"sender_user.alias = '{rg[2]}'"),Note.flow=='out'))) )
+        num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg==rg[2],Note.year==datetime.today().year,Note.flow=='out'))) )
 
     # Now adding +1 to num or start numeration of the year
     if num:
@@ -99,7 +100,7 @@ def newNote(user,reg,ref = None):
 
     new_note = db.session.scalars(sql.order_by(Note.id.desc())).first()
     
-    rst = create_folder(new_note.path_parent,new_note.note_folder)
+    rst = create_folder(new_note.path,new_note.note_folder)
     
     if rst:
         new_note.permanent_link = rst['permanent_link']
@@ -126,7 +127,6 @@ def sql_notes(reg, user, note = None, showAll = True):
                 select n,r from R")
         
         dqrl = db.session.execute(qr).all()
-        
 
         qrl = []
         for d in dqrl:
@@ -172,7 +172,7 @@ def register_output(args,output,showAll):
     
     global filter_notes
     global lasturl
-
+    print('output:',output)
     if read:
         nt = db.session.scalar(select(Note).where(Note.id==read))
         nt.updateRead(current_user)
@@ -187,8 +187,14 @@ def register_output(args,output,showAll):
         nt = db.session.scalar(select(Note).where(Note.id==state))
         nt.updateState(reg,current_user,again)
         db.session.commit()
-    elif "checkeml" in output:
-        pass
+    elif "importeml" in output:
+        path = f"{current_user.local_path}/Inbox"
+        files = os.listdir(path)
+        for file in files:
+            if file.split('.')[-1] == 'eml':
+                #ef = open(f"{path}/{file}",'rb')
+                #read_eml(ef)
+                read_eml(f"{path}/{file}")
     elif "geteml" in output:
         pass
     elif "newout" in output:
@@ -203,7 +209,7 @@ def register_output(args,output,showAll):
         else: # Creating a minuta from a note
             newNote(current_user,reg,ref)
     elif 'addfiles' in output:
-        nt = db.session.scalar(sql.where(Note.id==output['addfiles']))
+        nt = db.session.scalar(select(Note).where(Note.id==output['addfiles']))
         nt.updateFiles()
 
     # Find filter in fullkey, sender, receivers or content
