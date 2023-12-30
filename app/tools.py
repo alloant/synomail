@@ -3,8 +3,8 @@
 
 from sqlalchemy import select 
 from app import db
-from app.models.file import File
-from app.models.note import Note
+from .models.file import File
+from .models.note import Note
 
 def change_file_dates():
     from sqlalchemy import select

@@ -3,40 +3,34 @@ from datetime import datetime
 import re
 import os
 
-from flask import Blueprint, render_template, request, url_for, redirect, flash
+from flask import Blueprint, render_template, request, url_for, redirect, flash, session
 from flask_login import login_required, current_user
+
 from sqlalchemy import or_, and_, func, not_, select, literal_column
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import text
 
-from wtforms import SelectField
-#from flask_wtf import FlaskForm
-#from flask_wtf.file import MultipleFileField, FileRequired
-from werkzeug.utils import secure_filename
+#from wtforms import SelectField
+#from werkzeug.utils import secure_filename
 
-from docx import Document
-from tempfile import NamedTemporaryFile
+#from docx import Document
+#from tempfile import NamedTemporaryFile
 
 from app import db
-from app.models.user import User
-from app.models.note import Note
-from app.models.file import File
+from .models.user import User
+from .models.note import Note
+#from .models.file import File
 
-from app.models.nas.nas import create_folder, upload_path, convert_office, files_path, get_info
+from .models.nas.nas import create_folder
 
-from app.forms.note import NoteForm
+from .forms.note import NoteForm
 
-from app.syneml import read_eml
-#class FileForm(FlaskForm):
-#    files = MultipleFileField(validators=[FileRequired()])
+from .syneml import read_eml
 
 bp = Blueprint('register', __name__)
 
-filter_notes = ""
-lasturl = ""
 
-def newNote(user,reg,ref = None):
-    rg = reg.split('_')
+def nextNumReg(reg):
     # Get new number for the note. Here getting the las number in that register
     sender = aliased(User,name="sender_user")
     if rg[0] == 'min':
@@ -60,17 +54,21 @@ def newNote(user,reg,ref = None):
     elif rg[0] == 'min':
         num = 1
 
+    return num
+
+
+def newNote(user,reg,ref = None):
+    rg = reg.split('_')
+
+    num = nextNumReg(rg)
 
     # Creating the note. We need to know the register it bellows. This note could have been created by a cr dr or a cl member
     if rg[0] == 'cl': # New note made by a cl member. It's a note for cr from ctr 
         ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
-        folder = ctr.alias
         nt = Note(num=num,sender_id=ctr.id,reg='ctr')
     elif rg[0] == 'min':
-        folder = user.alias
         nt = Note(num=num,sender_id=user.id,reg=rg[0])
     else: # Note created by a cr dr
-        folder = user.alias
         nt = Note(num=num,sender_id=user.id,reg=rg[2])
     
         if rg[2] in ['cg','asr']:
@@ -86,26 +84,8 @@ def newNote(user,reg,ref = None):
             else:
                 nt.ref.append(rf)
 
-    if rg[0] == 'min':
-        nt.path = f"/team-folders/Data/Minutas/{folder}/Minutas/{datetime.now().year}"
-    else:
-        nt.path = f"/team-folders/Data/Minutas/{folder}/Notes"
-
     db.session.add(nt)
     rst = db.session.commit()
-    
-    # Now we create the folder in synology
-    sender = aliased(User,name="sender_user")
-    sql = select(Note).join(Note.sender.of_type(sender))
-
-    new_note = db.session.scalars(sql.order_by(Note.id.desc())).first()
-    
-    rst = create_folder(new_note.path,new_note.note_folder)
-    
-    if rst:
-        new_note.permanent_link = rst['permanent_link']
-    db.session.add(nt)
-    
 
 def sql_notes(reg, user, note = None, showAll = True):
     sender = aliased(User,name="sender_user")
@@ -169,10 +149,8 @@ def register_output(args,output,showAll):
     cldone = args.get('cldone')
     read = args.get('read')
     ref = args.get('ref') 
+
     
-    global filter_notes
-    global lasturl
-    print('output:',output)
     if read:
         nt = db.session.scalar(select(Note).where(Note.id==read))
         nt.updateRead(current_user)
@@ -213,12 +191,12 @@ def register_output(args,output,showAll):
         nt.updateFiles()
 
     # Find filter in fullkey, sender, receivers or content
-    if filter_notes:
+    if 'filter_notes' in session:
         fn = [
-            Note.fullkey.contains(filter_notes),
-            literal_column(f"sender_user.alias = '{filter_notes}'"),
-            literal_column(f"receiver_user.alias = '{filter_notes}'"),
-            Note.content.contains(filter_notes)
+            Note.fullkey.contains(session['filter_notes']),
+            literal_column(f"sender_user.alias = '{session["filter_notes"]}'"),
+            literal_column(f"receiver_user.alias = '{session["filter_notes"]}'"),
+            Note.content.contains(session["filter_notes"])
         ]
         sql = sql.where(or_(*fn))
 
@@ -255,9 +233,6 @@ def register():
     reg = request.args.get('reg')
     rg = reg.split("_")
 
-    # Global variables. We need the last filter and lasurl to go back after editing a note, for example
-    global filter_notes
-    global lasturl
 
     # This is use when someone puts and invalid url without reg
     if not reg:
@@ -272,7 +247,7 @@ def register():
 
     # Sending to last url when needed
     if reg == 'lasturl':
-        return redirect(lasturl)
+        return redirect(session['lasturl'])
 
     output = request.form.to_dict()
 
@@ -310,17 +285,17 @@ def register():
     
     # If have just put a new filter
     if 'notes_filter' in output:
-        if filter_notes != output['notes_filter']:
-            filter_notes = output['notes_filter']
+        if session['filter_notes'] != output['notes_filter']:
+            session['filter_notes'] = output['notes_filter']
             return redirect(url_for('register.register', reg=reg, page=1))
     elif not request.args.get('page'):
-        filter_notes = ""
+        session['filter_notes'] = ""
    
     # Getting the main sql for the register and doing other operations like new, edit...   
     sql = register_output(request.args,output,showAll)
    
     if 'read' in output:
-        return redirect(lasturl)
+        return redirect(session['lasturl'])
 
     page = request.args.get('page', 1, type=int)
 
@@ -329,7 +304,7 @@ def register():
     next_url = url_for('register.register', reg=reg, page=notes.next_num, showAll=showAll) if notes.has_next else None
     
     #lasturl = request.url
-    lasturl = url_for('register.register',reg=reg,page=page)
+    session['lasturl'] = url_for('register.register',reg=reg,page=page)
     return render_template('register/register.html',title=reg_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user,showAll=showAll)
 
 @bp.route('/edit_note', methods=['GET','POST'])
@@ -343,8 +318,6 @@ def edit_note():
 
     form = NoteForm(request.form,obj=note)
     form.sender.choices = [note.sender]
-
-    global lasturl
 
     if note.flow == 'in' or note.reg == 'min':
         form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(r'\bcr\b')).order_by(User.alias)).all()]
@@ -385,7 +358,7 @@ def edit_note():
         db.session.commit()
         
         if not error:
-            return redirect(lasturl)
+            return redirect(session['lasturl'])
     
     else:
         form.ref.data = ",".join([r.fullkey for r in note.ref]) if note.ref else "" 

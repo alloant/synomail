@@ -1,7 +1,6 @@
-from app import db
 from pathlib import Path
 
-from app.models.nas.nas import get_info,rename_path, move_path, copy_path, convert_office, download_path, create_folder
+from .nas import get_info,rename_path, move_path, copy_path, convert_office, download_path, create_folder
 
 class FileNas(object):
     def move(self,dest,dest_original = None):

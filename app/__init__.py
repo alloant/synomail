@@ -1,14 +1,17 @@
 # init.py
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager 
 from flask_bootstrap import Bootstrap5
 from config import Config
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 from flask_migrate import Migrate
 
-# init SQLAlchemy so we can use it later in our models
-db = SQLAlchemy()
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -23,7 +26,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     
     
-    from app.models.user import User
+    from .models.user import User
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -31,10 +34,10 @@ def create_app(config_class=Config):
         return User.query.get(int(user_id))
 
     # blueprint for auth routes in our app
-    from app.auth import bp as auth_blueprint
+    from .auth import bp as auth_blueprint
     app.register_blueprint(auth_blueprint)
 
-    from app.register import bp as register_blueprint
+    from .register import bp as register_blueprint
     app.register_blueprint(register_blueprint)
     
     return app

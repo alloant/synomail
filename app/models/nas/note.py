@@ -1,10 +1,7 @@
-from app import db
 from datetime import datetime
 
 from sqlalchemy import and_, select, func, case
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
-
-from app.models.file import File
 
 
 class NoteNas(object): 
@@ -24,16 +21,6 @@ class NoteNas(object):
     
     def addFile(self,file):
         self.files.append(file)
-
-    def addFile_old(self,file):
-        rst = file.copy(f"{self.path_note()}")
-        print(rst) 
-        if rst:
-            if 'success' in rst:
-                if 'permanent_link' in rst['data']:
-                    self.files.append(File(name=file.name,path=self.path_note(),type=file.type,permanent_link=rst['data']['permanent_link']))
-                else:
-                    self.files.append(File(name=file.name,path=self.path_note(),type=file.type,permanent_link=rst['data']['link_id']))
 
     def sheetLink(self,text):
         if self.permanent_link:

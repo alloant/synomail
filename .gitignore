@@ -1,5 +1,7 @@
 # Config and data
 config.py
+config_mariadb.py
+config_sqlite.py
 *.db
 
 # Byte-compiled / optimized / DLL files

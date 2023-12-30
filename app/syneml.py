@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 
 from pathlib import Path
 
-from app.models.nas.nas import upload_path
+from .models.nas.nas import upload_path
 #import libsynomail.connection as con
 
 

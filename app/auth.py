@@ -8,9 +8,9 @@ from cryptography.fernet import Fernet
 
 from sqlalchemy import select
 
-from app.forms.login import LoginForm, RegistrationForm, UserForm
-from app.models.user import User
 from app import db
+from .forms.login import LoginForm, RegistrationForm, UserForm
+from .models.user import User
 
 bp = Blueprint('auth', __name__)
 
