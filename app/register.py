@@ -194,8 +194,8 @@ def register_output(args,output,showAll):
     if 'filter_notes' in session:
         fn = [
             Note.fullkey.contains(session['filter_notes']),
-            literal_column(f"sender_user.alias = '{session["filter_notes"]}'"),
-            literal_column(f"receiver_user.alias = '{session["filter_notes"]}'"),
+            literal_column(f"""sender_user.alias = '{session["filter_notes"]}'"""),
+            literal_column(f"""receiver_user.alias = '{session["filter_notes"]}'"""),
             Note.content.contains(session["filter_notes"])
         ]
         sql = sql.where(or_(*fn))
