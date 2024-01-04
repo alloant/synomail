@@ -30,7 +30,7 @@ from .syneml import read_eml
 bp = Blueprint('register', __name__)
 
 
-def nextNumReg(reg):
+def nextNumReg(rg):
     # Get new number for the note. Here getting the las number in that register
     sender = aliased(User,name="sender_user")
     if rg[0] == 'min':
@@ -74,7 +74,7 @@ def newNote(user,reg,ref = None):
         if rg[2] in ['cg','asr']:
             rec = db.session.scalar(select(User).where(User.alias==rg[2]))
             nt.receiver.append(rec)
-    
+
     if ref:
         for irf in ref.split(","):
             rf = db.session.scalar(select(Note).where(Note.id==irf))

@@ -3,6 +3,8 @@ from datetime import datetime
 from sqlalchemy import and_, select, func, case
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
+from app import db
+from .nas import create_folder, get_info, files_path
 
 class NoteNas(object): 
     @property
@@ -31,6 +33,24 @@ class NoteNas(object):
             else:
                 return ''
 
+    def getPermanentLink(self): # Gets the link and creates the folder if needed
+        rst = get_info(self.path_note)
+        link = None
+        if not rst:
+            rst = create_folder(self.path,self.note_folder)
+            if rst:
+                link = rst['permanent_link']
+        elif 'data' in rst:
+            link = rst['data']['permanent_link']
+
+        if link:
+            self.permanent_link = link
+            db.session.commit()
+            return True
+        else:
+            flash(f'Could not create folder {self.path_note}')
+            return False
+
     def messageLink(self):
         if self.type == 'cg':
             text = f"{self.no}/{str(self.year)[2:]}"
@@ -43,6 +63,16 @@ class NoteNas(object):
             return f'<https://nas.prome.sg:5001/d/f/{self.permanent_link}|{text}>'
         else:
             return self.files[0].getLinkMessage(text)
+
+    def create_folder(self,folder = None):
+        if folder:
+            rst = create_folder(self.path,folder)
+        else:
+            rst = create_folder(self.path,self.note_folder)
+
+        if rst:
+            if 'permanent_link' in rst:
+                self.permanent_link = rst['permanent_link']
 
     def move(self,dest):
         logging.info(f"Moving {self.key} to {dest}")
@@ -118,4 +148,26 @@ class NoteNas(object):
         for file in self.files:
             file.move(dest,path_originals)
 
+    def updateFiles(self):
+        if not self.permanent_link: # There is no permanent_link, I should get it first
+            rst = self.getPermanentLink()
+        else:
+            rst = True
+        
+        if not rst:
+            return False
+
+        files = files_path(self.path_note)
+        if not files:
+            return False
+
+        ntfiles = []
+        for file in self.files:
+            ntfiles.append(file.path)
+            
+        for file in files:
+            if not file['name'] in ntfiles:
+                self.addFile(File(path=file['name'],permanent_link=file['permanent_link']))
+    
+        db.session.commit()
 

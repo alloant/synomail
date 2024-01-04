@@ -11,8 +11,10 @@ class File(FileProp,FileNas,db.Model):
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
     date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
+    subject: Mapped[str] = mapped_column(db.String(150), default = '')
     path: Mapped[str] = mapped_column(db.String(150), default = '')
     permanent_link: Mapped[str] = mapped_column(db.String(150), default = '')
+    sender: Mapped[str] = mapped_column(db.String(20))
     note_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('note.id'))
     
     note: Mapped["Note"] = relationship(back_populates="files")

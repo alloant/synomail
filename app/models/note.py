@@ -1,9 +1,11 @@
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app import db
 
+from .user import User
 from .properties.note import NoteProp
 from .html.note import NoteHtml
 from .nas.note import NoteNas
@@ -51,7 +53,8 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     files: Mapped[list["File"]] = relationship(back_populates="note")
 
     def __init__(self, *args, **kwargs):
-        super(Note,self, *args, **kwargs).__init__()
+        super(Note,self).__init__(*args, **kwargs)
+        self.sender = db.session.scalar(select(User).where(User.id==self.sender_id))  
         
         folder = self.sender.alias
         if self.reg == 'min':
@@ -59,11 +62,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         else:
             self.path = f"/team-folders/Data/Minutas/{folder}/Notes"
 
-
-        rst = self.create_folder(self.path,self.note_folder)
-        if rst:
-            if 'permament_link' in rst:
-                self.permanent_link = rst['permanent_link']
+        rst = self.create_folder()
 
     def __repr__(self):
         return f'<{self.fullkeyto} "{self.content}">'

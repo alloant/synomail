@@ -9,7 +9,9 @@ from email.mime.text import MIMEText
 
 from pathlib import Path
 
-from .models.nas.nas import upload_path
+from app import db
+from .models.nas.nas import upload_path, convert_office, move_path
+from .models.file import File
 #import libsynomail.connection as con
 
 
@@ -76,8 +78,21 @@ def read_eml(file_eml,emails = None):
         for file in attachments:
             b_file = io.BytesIO(base64.b64decode(file['raw']))
             b_file.name = f"{bf}_{file['filename']}"
-            print(b_file,dest)
-            upload_path(b_file,dest)
+            
+            rst = upload_path(b_file,dest)
+            path = rst['data']['path']
+            link = rst['data']['permanent_link']
+            
+            if file['filename'].split(".")[-1] in ['xls','xlsx','docx','rtf']:
+                path,fid,link = convert_office(rst['data']['display_path'])
+                move_path(rst['data']['display_path'],f"{dest}/Originals")
+
+            fl = File(path=path,permanent_link=link,subject=subject,sender=sender.lower())
+            db.session.add(fl)
+
+        db.session.commit()
+                
+ 
     else:
         if 'body' in parsed_eml:
             if parsed_eml['body']:
