@@ -173,7 +173,7 @@ class NoteHtml(object):
                 elif self.state == 6:
                     a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':'Done'})
                     i = ET.Element('i',attrib={'class':'bi bi-check','style':'color: blue;'})
-       
+        
         if self.reg == 'min' and self.sender == user and self.state == 2:
             div = ET.Element('span')
             a2 = ET.Element('a',attrib={'href':f'?reg={reg}&state={self.id}&again=true','data-bs-toggle':'tooltip','title':'Circulate minuta again from beginning'})

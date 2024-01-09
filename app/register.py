@@ -19,7 +19,7 @@ from sqlalchemy.sql import text
 from app import db
 from .models.user import User
 from .models.note import Note
-#from .models.file import File
+from .models.file import File
 
 from .models.nas.nas import create_folder
 
@@ -99,13 +99,13 @@ def sql_notes(reg, user, note = None, showAll = True):
     sql = sql.where(Note.user_can_see(user,reg))
 
     if note: #Here is the history of a note sql
-        qr = text(f"with R as ( \
+        qr = text(f"with recursive R as ( \
                 select note_id as n, ref_id as r from note_ref where note_id = {note} or ref_id = {note} \
                 UNION \
-                select note_id,ref_id from R,note_ref where note_id = r or ref_id = n \
+                select note_ref.note_id,note_ref.ref_id from R,note_ref where note_ref.note_id = R.r or note_ref.ref_id = R.n \
                 ) \
                 select n,r from R")
-        
+ 
         dqrl = db.session.execute(qr).all()
 
         qrl = []
@@ -165,16 +165,6 @@ def register_output(args,output,showAll):
         nt = db.session.scalar(select(Note).where(Note.id==state))
         nt.updateState(reg,current_user,again)
         db.session.commit()
-    elif "importeml" in output:
-        path = f"{current_user.local_path}/Inbox"
-        files = os.listdir(path)
-        for file in files:
-            if file.split('.')[-1] == 'eml':
-                #ef = open(f"{path}/{file}",'rb')
-                #read_eml(ef)
-                read_eml(f"{path}/{file}")
-    elif "geteml" in output:
-        pass
     elif "newout" in output:
         newNote(current_user,reg)
     elif ref:
@@ -225,7 +215,89 @@ def reg_title(reg,note=None):
     elif rg[0] == 'min':
         return 'Minutas'
 
-@bp.route('/',methods=['POST','GET'])
+
+@bp.route('/inbox_scr',methods=['POST','GET'])
+@login_required
+def inbox_scr():
+    output = request.form.to_dict()
+    if "importeml" in output:
+        path = f"{current_user.local_path}/Inbox"
+        files = os.listdir(path)
+        for file in files:
+            if file.split('.')[-1] == 'eml':
+                read_eml(f"{path}/{file}")
+    elif "notesfromfiles" in output:
+        files = db.session.scalars(select(File).where(File.note_id==0))
+        involved_notes = []
+        for file in files:
+            gfk = file.guess_fullkey
+            sender = aliased(User,name="sender_user")
+            nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==gfk))
+            if nt:
+                file.move_to_note(nt.path_note)
+                nt.addFile(file)
+            else: # We need to create the note
+                num = re.findall(r'\d+',gfk)[0]                
+                year = re.findall(r'\d+',gfk)[1]                
+                if file.sender == 'cg@cardumen.org':
+                    nt = Note(num=num,year=year,sender_id=36,reg='cg',state=2)
+                else:
+                    sender = db.session.scalar(select(User).where(User.email==self.sender))
+                    nt = Note(num=num,year=year,sender_id=user.id,reg='r',state=2)
+                
+                nt.addFile(file)
+                db.session.add(nt)
+
+            if not nt in involved_notes:
+                involved_notes.append(nt)
+
+        db.session.commit()
+
+
+    sql = select(File).where(File.note_id==0)
+    page = request.args.get('page', 1, type=int)
+    files = db.paginate(sql, per_page=30)
+    prev_url = url_for('register.inbox_scr', page=files.prev_num) if files.has_prev else None
+    next_url = url_for('register.inbox_scr', page=files.next_num) if files.has_next else None
+    
+    return render_template('register/inbox_scr.html',title="Files received from cg and r", files=files, page=page, prev_url=prev_url, next_url=next_url)
+
+
+@bp.route('/register_new',methods=['POST','GET'])
+@login_required
+def register_new():
+    note = request.args.get('note')
+    reg = request.args.get('reg')
+    rg = reg.split("_") 
+    
+    # To control the showAll button. We start as False in pendings and minutas
+    showAll = request.args.get('showAll')
+    if showAll != None:
+        showAll = True if showAll == 'True' else False
+    else:
+        showAll = False if rg[0] in ['pen','min'] and not note else True
+
+    page = request.args.get('page', 1, type=int)
+   
+    fn = []
+    fn.append(Note.reg==rg[2])
+    fn.append(Note.flow==rg[1])
+    fn.append(Note.state==6)
+    fn.append(Note.reg!='min')
+
+ 
+    sender = aliased(User,name="sender_user")
+    sql = select(Note).join(Note.sender.of_type(sender)).where(and_(*fn))
+    sql = sql.order_by(Note.date.desc(), Note.num.desc())
+    notes = db.paginate(sql, per_page=30)
+    
+    prev_url = url_for('register.register', reg=reg, page=notes.prev_num, showAll=showAll) if notes.has_prev else None
+    next_url = url_for('register.register', reg=reg, page=notes.next_num, showAll=showAll) if notes.has_next else None
+    
+    session['lasturl'] = url_for('register.register',reg=reg,page=page)
+    return render_template('register/register.html',title=reg_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user,showAll=showAll)
+
+
 @bp.route('/register',methods=['POST','GET'])
 @login_required
 def register():
@@ -300,6 +372,7 @@ def register():
     page = request.args.get('page', 1, type=int)
 
     notes = db.paginate(sql, per_page=30)
+    
     prev_url = url_for('register.register', reg=reg, page=notes.prev_num, showAll=showAll) if notes.has_prev else None
     next_url = url_for('register.register', reg=reg, page=notes.next_num, showAll=showAll) if notes.has_next else None
     
@@ -315,7 +388,7 @@ def edit_note():
     note_id = request.args.get('note')
     sender = aliased(User,name="sender_user")
     note = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.id==note_id)).first()
-
+    
     form = NoteForm(request.form,obj=note)
     form.sender.choices = [note.sender]
 

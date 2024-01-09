@@ -11,8 +11,8 @@ class User(UserProp,UserMixin, db.Model):
     __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True) # primary keys are required by SQLAlchemy
-    password: Mapped[str] = mapped_column(db.String(100), default='')
-    password_nas: Mapped[str] = mapped_column(db.String(100), default='')
+    password: Mapped[str] = mapped_column(db.String(500), default='')
+    password_nas: Mapped[str] = mapped_column(db.String(500), default='')
 
     date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
     name: Mapped[str] = mapped_column(db.String(200), default='')

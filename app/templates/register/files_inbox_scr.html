@@ -1,0 +1,36 @@
+  <form class="invisible" id="addfiles" method="POST">
+  </form>
+<div class="table-responsive">  
+  <table class="table table-sm table-striped">
+    <thead class="">
+      <tr class="bg-dark">
+        <th>Date</th>
+        <th>Subject</th>
+        <th>Name</th>
+        <th>Sender</th>
+        <th>No</th>
+        <th>Content</th>
+        <th>Ref</th>
+      </tr>
+    </thead>
+    <tbody>
+      <form class="" id="inboxscr" method="POST">
+      {% for file in files %}
+      <tr>
+        <td>{{ file.date }}</td>
+        <td>{{ file.subject }}</td>
+        <td><a href="https://nas.prome.sg:5001/oo/r/{{file.permanent_link}}" target="_blank">{{ file.path.split('/')[-1] }}</a></td>
+        <td>{{ file.sender }}</td>
+        <td><input type="text" name="number_{{file.id}}" placeholder="nnn/yy" value="{{ file.guess_number }}"></td>
+        <td><input type="text" name="content_{{file.id}}" placeholder="Content" value="{{ file.guess_content }}"></td>
+        <td>
+        {% for fk,ref in file.guess_ref %}
+          <a href="/register?reg=cr_all_cg&h_note={{ref}}" target="_blank">{{ fk }}</a>
+        {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+      </form>
+    </tbody>
+  </table>
+</div>

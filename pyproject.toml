@@ -20,6 +20,7 @@ wtforms-sqlalchemy = "^0.3"
 synology-drive-api = {git = "https://github.com/alloant/synology-drive-api.git", rev = "v0.1.0"}
 eml-parser = "^1.17.5"
 flask-login = "^0.6.3"
+pymysql = "^1.1.0"
 
 
 [build-system]

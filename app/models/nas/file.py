@@ -1,8 +1,14 @@
+from app import db
 from pathlib import Path
 
 from .nas import get_info,rename_path, move_path, copy_path, convert_office, download_path, create_folder
 
 class FileNas(object):
+    def move_to_note(self,dest):
+        rst = move_path(self.path,dest)
+        if rst:
+            self.path = rst['data']['display_path'].split('/')[-1]
+
     def move(self,dest,dest_original = None):
         rst = move_path(self.file_id,dest)
         if rst:

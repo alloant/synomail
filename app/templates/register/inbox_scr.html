@@ -1,0 +1,34 @@
+<!-- templates/profile.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="title text-center display-4">
+  {{title}}
+</h1>
+
+<div id="wait" class="modal">
+  {% include 'wait.html' %}
+</div>
+
+<div id="upfile" class="modal">
+  {% include 'upload_file.html' %}
+</div>
+
+<div class="d-flex flew-row p-4">
+  <form class="p-2" method="POST">
+    <input type="submit" class="btn btn-primary me-2" data-bs-toggle="modal" name="importeml" value="Check for eml">
+  </form>
+  <div class="p-2">
+    <input type="submit" form="inboxscr" class="btn btn-primary me-2" data-bs-toggle="modal" name="notesfromfiles" value="Notes to despacho">
+  </div>
+</div>
+
+
+<div class="row">
+  <div class="col">
+    {% include 'register/file_search.html' %}
+  </div>
+</div>
+
+{% endblock %}

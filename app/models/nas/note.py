@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from flask import flash
+
 from sqlalchemy import and_, select, func, case
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 

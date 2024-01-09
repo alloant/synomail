@@ -34,7 +34,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     
     n_date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
     content: Mapped[str] = mapped_column(db.Text, default = '')
-    proc: Mapped[int] = mapped_column(db.String(15), default = '')
+    proc: Mapped[int] = mapped_column(db.String(50), default = '')
     ref: Mapped[list["Note"]] = relationship('Note', secondary=note_ref, primaryjoin=note_ref.c.note_id==id, secondaryjoin=note_ref.c.ref_id==id, backref='notes') 
     path: Mapped[str] = mapped_column(db.String(150), default = '')
     permanent_link: Mapped[str] = mapped_column(db.String(150), default = '')
@@ -57,7 +57,9 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         self.sender = db.session.scalar(select(User).where(User.id==self.sender_id))  
         
         folder = self.sender.alias
-        if self.reg == 'min':
+        if 'cg' in self.sender.groups or 'r' in self.sender.groups:
+            self.path = f"/team-folders/Data/Notes/{int(self.year)+2000}/{self.reg} in"
+        elif self.reg == 'min':
             self.path = f"/team-folders/Data/Minutas/{folder}/Minutas/{datetime.now().year}"
         else:
             self.path = f"/team-folders/Data/Minutas/{folder}/Notes"

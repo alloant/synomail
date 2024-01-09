@@ -195,7 +195,11 @@ def _create_folder(synd,path,folder):
     else:
         print('creating:',folder,path)
         rst = synd.create_folder(folder,path)
-
+        
+        if rst:
+            if 'permanent_link' in rst:
+                self.permanent_link = rst['permanent_link']
+                
         folder_id = rst['data']['file_id']
         p_link = rst['data']['permanent_link']
 

@@ -87,7 +87,7 @@ def read_eml(file_eml,emails = None):
                 path,fid,link = convert_office(rst['data']['display_path'])
                 move_path(rst['data']['display_path'],f"{dest}/Originals")
 
-            fl = File(path=path,permanent_link=link,subject=subject,sender=sender.lower())
+            fl = File(path=path,permanent_link=link,subject=subject,sender=sender.lower(),note_id=0)
             db.session.add(fl)
 
         db.session.commit()

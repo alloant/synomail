@@ -6,7 +6,7 @@ from sqlalchemy import case, and_, or_, not_, select, type_coerce, literal_colum
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
-from ..file import File
+#from ..file import File
 from ..user import User
 
 class NoteProp(object):
@@ -20,10 +20,16 @@ class NoteProp(object):
     
     @date.expression
     def date(cls):
+        return cls.n_date
+
+    """
+    @date.expression
+    def date(cls):
         return case(
             (func.count(select(File.id).where(File.note_id==cls.id).scalar_subquery())==0,cls.n_date),
             else_=func.max(select(File.date).where(File.note_id==cls.id).scalar_subquery(),cls.n_date)
         )
+    """
 
     @property
     def groups(self):
@@ -84,7 +90,7 @@ class NoteProp(object):
     @flow.expression
     def flow(cls):
         return case(
-            (literal_column(fr"sender_user.u_groups regexp '\bcr\b'"),'out'),
+            (literal_column(fr"sender_user.u_groups regexp '\\bcr\\b'"),'out'),
             else_='in'
         )
     
@@ -175,7 +181,6 @@ class NoteProp(object):
     def is_read(self,user):
         if isinstance(user,str): # This is a ctr or des
             alias = user if user[:4] == 'des_' else user.split('_')[2]
-            print(user,alias,';;;;',self.read_by.split(","))
             return alias in self.read_by.split(",")
 
         if user.date > self.n_date:
