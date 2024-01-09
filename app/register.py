@@ -1,5 +1,5 @@
 # main.py
-from datetime import datetime
+from datetime import datetime, date
 import re
 import os
 
@@ -21,7 +21,7 @@ from .models.user import User
 from .models.note import Note
 from .models.file import File
 
-from .models.nas.nas import create_folder
+from .models.nas.nas import create_folder, files_path, move_path, convert_office
 
 from .forms.note import NoteForm
 
@@ -226,11 +226,32 @@ def inbox_scr():
         for file in files:
             if file.split('.')[-1] == 'eml':
                 read_eml(f"{path}/{file}")
+        
+        asr_files = files_path("/team-folders/Data/Mail/Mail asr")
+        for file in asr_files:
+            rst = move_path(file['display_path'],"/team-folders/Data/Mail/IN")
+            if rst:
+                filename = file['display_path'].split("/")[-1]
+                path = f"/team-folder/Data/Mail/IN/{filename}"
+                link = file['permanent_link']
+                if filename.split(".")[-1] in ['xls','xlsx','docx','rtf']:
+                    path,fid,link = convert_office(f"/team-folders/Data/Mail/IN/{filename}")
+                    move_path(f"/team-folders/Data/Mail/IN/{filename}",f"/team-folders/Data/Mail/IN/Originals")
+
+                fl = File(path=path,permanent_link=link,sender="asr",date=date.today())
+            db.session.add(fl)
+
+        db.session.commit()
+
     elif "notesfromfiles" in output:
-        files = db.session.scalars(select(File).where(File.note_id==0))
-        involved_notes = []
+        files = db.session.scalars(select(File).where(File.note_id==None))
         for file in files:
-            gfk = file.guess_fullkey
+            #print(output)
+            gfk = file.guess_fullkey(output[f"number_{file.id}"])
+            if gfk == "":
+                continue
+
+            content = output[f"content_{file.id}"]
             sender = aliased(User,name="sender_user")
             nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==gfk))
             if nt:
@@ -240,21 +261,18 @@ def inbox_scr():
                 num = re.findall(r'\d+',gfk)[0]                
                 year = re.findall(r'\d+',gfk)[1]                
                 if file.sender == 'cg@cardumen.org':
-                    nt = Note(num=num,year=year,sender_id=36,reg='cg',state=2)
+                    nt = Note(num=num,year=year,sender_id=36,reg='cg',state=2,content=content)
                 else:
-                    sender = db.session.scalar(select(User).where(User.email==self.sender))
-                    nt = Note(num=num,year=year,sender_id=user.id,reg='r',state=2)
+                    sender = db.session.scalar(select(User).where(User.email==file.sender))
+                    nt = Note(num=num,year=year,sender_id=sender.id,reg='r',state=2,content=content)
                 
                 nt.addFile(file)
                 db.session.add(nt)
 
-            if not nt in involved_notes:
-                involved_notes.append(nt)
-
         db.session.commit()
 
 
-    sql = select(File).where(File.note_id==0)
+    sql = select(File).where(File.note_id == None)
     page = request.args.get('page', 1, type=int)
     files = db.paginate(sql, per_page=30)
     prev_url = url_for('register.inbox_scr', page=files.prev_num) if files.has_prev else None

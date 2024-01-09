@@ -50,20 +50,22 @@ class FileProp(object):
             if "/" in temp:
                 temp = re.findall(r'\d+',temp)
                 if len(temp) > 1:
-                    return f"{temp[0]}/{temp[1]}"
+                    return f"{int(temp[0])}/{int(temp[1])}"
 
         temp = re.findall(r'\d+',self.path.split('/')[-1])
         
         if temp:
-            return f"{temp[0]}/{date.today().year-2000}"
+            return f"{int(temp[0])}/{date.today().year-2000}"
 
-    @property
-    def guess_fullkey(self):
+    def guess_fullkey(self,key = None):
         sender = db.session.scalar(select(User).where(User.email==self.sender))
         if sender:
             prot = sender.alias
         else:
             return ""
+
+        if key:
+            return f"{prot} {key}"
 
         if ";" in self.subject:
             temp = self.subject.split(";")[0]

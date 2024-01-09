@@ -15,7 +15,7 @@ class File(FileProp,FileNas,db.Model):
     path: Mapped[str] = mapped_column(db.String(150), default = '')
     permanent_link: Mapped[str] = mapped_column(db.String(150), default = '')
     sender: Mapped[str] = mapped_column(db.String(20))
-    note_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('note.id'))
+    note_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('note.id'),nullable=True)
     
     note: Mapped["Note"] = relationship(back_populates="files")
    

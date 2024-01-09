@@ -48,22 +48,18 @@ def write_eml(rec,note,path_download):
 
 
 def read_eml(file_eml,emails = None):
-    #ep = eml_parser.EmlParser(include_attachment_data=True,include_raw_body=True)
-    #parsed_eml = ep.decode_email_bytes(file_eml)
     parsed_eml = eml_parser.parser.decode_email(file_eml,include_attachment_data=True,include_raw_body=True)
-    #ep = eml_parser.EmlParser(include_attachment_data=True,include_raw_body=True)
-    #parsed_eml = ep.decode_email(file_eml)
-    #parsed_eml = eml_parser.parser.decode_email_bytes(file_eml,include_attachment_data=True,include_raw_body=True)
     sender = parsed_eml['header']['from']
     subject = parsed_eml['header']['subject']
+    date = parsed_eml['header']['date']
+    
+    dest = "/team-folders/Data/Mail/IN"
 
     if sender == "cg@cardumen.org":
-        dest = "/team-folders/Data/Mail/Mail cg"
         bf = 'cg'
         if subject == 'Nota de envíos':
             pass
     else:
-        dest = "/team-folders/Data/Mail/Mail r"
         bf = 'r'
 
     if bf == 'r' and emails:
@@ -80,6 +76,9 @@ def read_eml(file_eml,emails = None):
             b_file.name = f"{bf}_{file['filename']}"
             
             rst = upload_path(b_file,dest)
+            if not rst:
+                continue
+
             path = rst['data']['path']
             link = rst['data']['permanent_link']
             
@@ -87,7 +86,7 @@ def read_eml(file_eml,emails = None):
                 path,fid,link = convert_office(rst['data']['display_path'])
                 move_path(rst['data']['display_path'],f"{dest}/Originals")
 
-            fl = File(path=path,permanent_link=link,subject=subject,sender=sender.lower(),note_id=0)
+            fl = File(path=path,permanent_link=link,subject=subject,sender=sender.lower(),date=date.date())
             db.session.add(fl)
 
         db.session.commit()
