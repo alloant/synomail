@@ -7,6 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
 from .nas import create_folder, get_info, files_path
+from app.models.file import File
 
 class NoteNas(object): 
     @property

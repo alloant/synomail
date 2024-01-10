@@ -129,7 +129,7 @@ class NoteHtml(object):
                         else:
                             i = ET.Element('i',attrib={'class':'bi bi-envelope','style':'color: gray;'})
                         
-            else:
+            else: #rel_flow == out
                 if self.state in [4,5,6]:
                     if self.sender == user:
                         if self.state == 6:
@@ -146,7 +146,7 @@ class NoteHtml(object):
                             a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':'Working on it'})
                             i = ET.Element('i',attrib={'class':'bi bi-envelope','style':'color: orange;'})
                 else: # I am the sender and I can send or see the status
-                    a = ET.Element('span',attrib={'data-bs-toggle':'tooltip','title':'Working on it'})
+                    a = ET.Element('a',attrib={'href':f'?reg={reg}&state={self.id}','data-bs-toggle':'tooltip','title':'Send note'})
                     i = ET.Element('i',attrib={'class':'bi bi-envelope','style':'color: orange;'}) 
         elif self.reg == 'min': # For the minutas
             if self.sender == user:

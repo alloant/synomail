@@ -421,6 +421,7 @@ def edit_note():
         note.n_date = form.n_date.data
         note.year = form.year.data
         note.content = form.content.data
+        note.content_jp = form.content_jp.data
         note.comments = form.comments.data
         note.proc = form.proc.data
         note.permanent = form.permanent.data

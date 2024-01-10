@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app import db
 from app.models.user import User
-from .tools import get_note_id
+#from .tools import get_note_id
 
 class FileProp(object):
     @property
@@ -89,7 +89,7 @@ class FileProp(object):
                     return temp[1]
 
         return ""
-
+    
     @property
     def guess_ref(self):
         ids = []

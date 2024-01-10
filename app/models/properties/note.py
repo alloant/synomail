@@ -17,11 +17,11 @@ class NoteProp(object):
             dt = file.date if dt < file.date else dt
 
         return dt
-    
+
     @date.expression
     def date(cls):
         return cls.n_date
-
+    
     """
     @date.expression
     def date(cls):

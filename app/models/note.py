@@ -34,6 +34,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     
     n_date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
     content: Mapped[str] = mapped_column(db.Text, default = '')
+    content_jp: Mapped[str] = mapped_column(db.Text, default = '')
     proc: Mapped[int] = mapped_column(db.String(50), default = '')
     ref: Mapped[list["Note"]] = relationship('Note', secondary=note_ref, primaryjoin=note_ref.c.note_id==id, secondaryjoin=note_ref.c.ref_id==id, backref='notes') 
     path: Mapped[str] = mapped_column(db.String(150), default = '')

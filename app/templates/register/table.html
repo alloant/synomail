@@ -56,7 +56,11 @@
           {% if note.comments and note.is_involve(user) %}
           <span data-bs-toggle="tooltip" title="{{note.comments}}"><i class="bi bi-file-earmark-text" style="color: OrangeRed;"></i></span>
           {% endif %}
-          {{ note.content }}
+          {% if "jp" in user.groups and note.content_jp %}
+            {{ note.content_jp }}
+          {% else %}
+            {{ note.content }}
+          {% endif %}
         </td>
        
         <td>

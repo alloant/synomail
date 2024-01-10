@@ -36,6 +36,9 @@
         <div class="container mb-4">
           {{ form.content.label(class="form-label") }}
           {{ form.content(class="form-control") }}
+        </div><div class="container mb-4">
+          {{ form.content_jp.label(class="form-label") }}
+          {{ form.content_jp(class="form-control") }}
         </div>
         {% if 'despacho' in user.groups %}
           <div class="container mb-4">
