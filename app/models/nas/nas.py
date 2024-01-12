@@ -149,7 +149,6 @@ def _convert_office(synd,path,delete):
     return new_file_path, new_file_id, new_permanent_link
 
 def _download_path(synd,path,dest):
-    print('###',path,dest)
     if not path.isdigit():
         name = get_info(path,attr='name')
     else:

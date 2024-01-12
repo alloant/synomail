@@ -10,14 +10,7 @@ class FileNas(object):
             self.path = rst['data']['display_path'].split('/')[-1]
 
     def move(self,dest,dest_original = None):
-        rst = move_path(self.path,f"{dest}")
-        #if rst:
-        #    if self.original_name and dest_original:
-        #        move_path(self.original_id,dest_original)
-        #    self.path = dest
-        #    self.file_id = rst['id']
-        
-        return rst
+        return move_path(self.path,f"{dest}")
 
     def copy(self,dest):
         return copy_path(f"{self.path}/{self.name}",f"{dest}/{self.name}")
@@ -31,12 +24,4 @@ class FileNas(object):
         self.name = rst['name']
         self.file_id = rst['id']
         self.permanent_link = rst['permanent_link']
-
-    def rename(self,new_name):
-        rst = rename_path(self.file_id,new_name)
-
-        if rst: self.name = new_name
-
-    def download(self,dest = None):
-        return download_path(self.file_id,dest)
 

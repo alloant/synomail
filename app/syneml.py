@@ -10,17 +10,18 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 from app import db
-from .models.nas.nas import upload_path, convert_office, move_path
+from .models.nas.nas import upload_path, convert_office, move_path, download_path
 from .models.file import File
 #import libsynomail.connection as con
 
+INV_EXT = {'osheet':'xlsx','odoc':'docx'}
+EXT = {'xls':'osheet','xlsx':'osheet','docx':'odoc','rtf':'odoc'}
 
 def write_eml(rec,note,path_download):
     msg = MIMEMultipart()
     msg["To"] = rec
     msg["From"] = 'Aes-cr@cardumen.org'
     msg["Subject"] = f"{note.key}/{note.year-2000};{note.content};{note.refs}"
-    print(msg["Subject"])
     msg.add_header('X-Unsent','1')
     body = ""
     msg.attach(MIMEText(body,"plain"))
@@ -28,12 +29,12 @@ def write_eml(rec,note,path_download):
     rst = True
     for file in note.files:
         ext = Path(file.name).suffix[1:]
-        #file_name = f"{Path(file.name).stem}.{INV_EXT[ext]}" if ext in INV_EXT else file.name
+        file_name = f"{Path(file.name).stem}.{INV_EXT[ext]}" if ext in INV_EXT else file.name
 
-        attachment = file.download()
+        attachment = download_path(f"{note.path_note}/{file.path}")
         
         if attachment:
-            part = MIMEApplication(attachment.read(),Name=file_name)
+            part = MIMEApplication(attachment.read(),Name=file.name)
 
             part['Content-Disposition'] = f'attachment; filename = {file_name}'
             msg.attach(part)

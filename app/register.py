@@ -362,7 +362,7 @@ def register():
         tosendnotes = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.flow=='out',Note.state==1))
         
         for nt in tosendnotes:
-            #rst = nt.move(f'/team-folders/Data/Notes/{nt.year}/{nt.reg} out')
+            rst = nt.move(f'/team-folders/Data/Notes/{nt.year}/{nt.reg} out')
             rst = True
             if not rst:
                 continue
@@ -371,12 +371,16 @@ def register():
                 rec = ",".join([rec.email for rec in nt.receiver])
                 path = f"{current_user.local_path}/Outbox"
                 write_eml(rec,nt,path)
+                nt.state = 6
 
             if nt.reg == 'asr': # Note for asr. We just copy it to the right folder
-                pass
+                nt.copy('/team-folders/Data/Mail/Mail asr/Outbox')
+                nt.state = 6
             
             if nt.reg == 'ctr': # note for a ctr. We just change the state
                 nt.state = 6
+
+            db.session.commit()
 
     if 'upload' in output:
         files = request.files.getlist('files')

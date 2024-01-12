@@ -6,7 +6,7 @@ from sqlalchemy import and_, select, func, case
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
-from .nas import create_folder, get_info, files_path, move_path
+from .nas import create_folder, get_info, files_path, move_path, copy_path
 from app.models.file import File
 
 class NoteNas(object): 
@@ -82,24 +82,15 @@ class NoteNas(object):
                 self.permanent_link = rst['permanent_link']
 
     def move(self,dest):
-        return move_path(self.path_note,dest)
+        rst = move_path(self.path_note,dest)
+        if rst:
+            self.path = dest
+            db.session.commit()
+            return True
+        return False
 
     def copy(self,dest):
-        logging.info(f"Copying {self.key} to {dest}")
-        if self.folder_path:
-            rst = copy_path(self.folder_path,f"{dest}/{Path(self.folder_path).stem}")
-            if rst:
-                return True
-        else:
-            cont = 0
-            for file in self.files:
-                cont += 1 if file.copy(dest) else 0
-            
-            if cont == len(self.files):
-                return True
-            else:
-                return False
-
+        return copy_path(self.path_note,f"{dest}/{self.note_folder}")
 
     def organice_files_to_despacho(self,path_dest,path_originals):
         key = self.get_key(full=True)

@@ -43,9 +43,12 @@ class NoteProp(object):
     def key(self):
         return self.keyto()
 
-    def keyto(self,keyto=False):
+    def keyto(self,keyto=False,email=False):
         if self.flow == 'in':
-            return f"{self.sender.alias} {self.num}"
+            if email and self.sender.alias == 'cg':
+                return f"{self.num}"
+            else:
+                return f"{self.sender.alias} {self.num}"
         elif 'cg' == self.reg:
             return f"Aes {self.num}"
         elif 'asr' == self.reg:
@@ -65,7 +68,7 @@ class NoteProp(object):
 
     @property
     def refs(self):
-        return ",".join([ref.fullkey for ref in self.ref])
+        return ",".join([f"{ref.keyto(True,True)}/{self.year-2000}" for ref in self.ref])
 
     @property
     def fullkeyto(self):
