@@ -3,6 +3,10 @@ config.py
 config_mariadb.py
 config_sqlite.py
 *.db
+*.sh
+migrations*/
+todo.txt
+Dockerfile_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

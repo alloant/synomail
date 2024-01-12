@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 from app import db
 from app.models.user import User
-#from .tools import get_note_id
 
 class FileProp(object):
     @property

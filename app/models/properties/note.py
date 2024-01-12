@@ -12,24 +12,11 @@ from ..user import User
 class NoteProp(object):
     @hybrid_property
     def date(self):
-        dt = self.n_date
-        for file in self.files:
-            dt = file.date if dt < file.date else dt
-
-        return dt
+        return self.n_date
 
     @date.expression
     def date(cls):
         return cls.n_date
-    
-    """
-    @date.expression
-    def date(cls):
-        return case(
-            (func.count(select(File.id).where(File.note_id==cls.id).scalar_subquery())==0,cls.n_date),
-            else_=func.max(select(File.date).where(File.note_id==cls.id).scalar_subquery(),cls.n_date)
-        )
-    """
 
     @property
     def groups(self):
@@ -176,15 +163,6 @@ class NoteProp(object):
             return f"{self.path}/{self.year}/{self.note_folder}"
             return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
     
-    @property
-    def path_parent(self):
-        if self.reg == 'min':
-            return f"{self.path}/{self.year}"
-            return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}"
-        else:
-            #return f"{self.path}/{self.year}/"
-            return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}"
-
 
     def is_read(self,user):
         if isinstance(user,str): # This is a ctr or des
@@ -207,14 +185,6 @@ class NoteProp(object):
             return 'in' if self.flow == 'out' else 'out'
         else:
             return self.flow
-
-    def is_bold(self,reg,user):
-        flow = 'out' if '_ctr_' in reg else 'in'
-        
-        if self.flow == flow:
-            return not self.is_read(user)
-        else:
-            return self.state == 0
 
     def updateRead(self,user):
         rb = self.read_by.split(',') if self.read_by else []
