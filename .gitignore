@@ -4,7 +4,10 @@ config_mariadb.py
 config_sqlite.py
 *.db
 *.sh
-migrations*/
+migrations/
+migrations_mariadb_nas_docker/
+migrations_sqlite/
+
 todo.txt
 Dockerfile_*
 
