@@ -19,7 +19,8 @@ def write_eml(rec,note,path_download):
     msg = MIMEMultipart()
     msg["To"] = rec
     msg["From"] = 'Aes-cr@cardumen.org'
-    msg["Subject"] = f"{note.key}/{note.year[2:]}: {note.content}"
+    msg["Subject"] = f"{note.key}/{note.year-2000};{note.content};{note.refs}"
+    print(msg["Subject"])
     msg.add_header('X-Unsent','1')
     body = ""
     msg.attach(MIMEText(body,"plain"))
@@ -40,7 +41,7 @@ def write_eml(rec,note,path_download):
             rst = False
 
     if rst:
-        with open(f"{path_download}/outbox forti/{note.key}.eml",'w') as file:
+        with open(f"{path_download}/{note.key}.eml",'w') as file:
             emlGenerator = generator.Generator(file)
             emlGenerator.flatten(msg)
             return True

@@ -32,7 +32,7 @@ def wrap_error(func, *args):
             message = f"Synology error: {err.message} in {func.__name__} with parameters {args}"
         else:
             message = f"{err} in {func.__name__} with parameters {args}"
-
+        
         logging.warning(message)
 
 
@@ -181,13 +181,11 @@ def _create_folder(synd,path,folder):
     print('Starting folder',path)
     files = files_path(path)
     folder_exists = False
-    print(files)
     for fl in files:
-        print(fl)
         if fl['name'] == folder:
             folder_exists = True
             break
-    print('exists',folder_exists)
+    
     if folder_exists:
         folder_info = synd.get_file_or_folder_info(f"{path}/{folder}")['data']
         folder_id = folder_info['file_id']

@@ -64,6 +64,10 @@ class NoteProp(object):
             return f"Minuta-{self.sender.alias} {self.num}"
 
     @property
+    def refs(self):
+        return ",".join([ref.fullkey for ref in self.ref])
+
+    @property
     def fullkeyto(self):
         return f"{self.keyto(True)}/{str(self.year)[-2:]}"
 
@@ -128,11 +132,12 @@ class NoteProp(object):
             cond.append(or_(and_(cls.state==0,literal_column(f"sender_user.alias = 'user.alias'")),literal_column(f"receiver_user.alias = '{user.alias}'")))
         else:
             if rg[0] == 'cl':
-                cond.append(or_(cls.state>3,cls.sender_id==user.id))
+                #cond.append(or_(cls.state>3,literal_column(f"sender_user.alias = '{rg[2]}'")))
                 cond.append(cls.reg=='ctr')
                 if rg[1] == 'out': #it is a note from ctr to cg
                     cond.append(literal_column(f"sender_user.alias = '{rg[2]}'"))
                 else:
+                    cond.append(cls.state>3)
                     cond.append(literal_column(f"receiver_user.alias = '{rg[2]}'"))
             elif rg[0] == 'min':
                 cond.append(cls.reg=='min')

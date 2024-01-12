@@ -25,7 +25,7 @@ from .models.nas.nas import create_folder, files_path, move_path, convert_office
 
 from .forms.note import NoteForm
 
-from .syneml import read_eml
+from .syneml import read_eml, write_eml
 
 bp = Blueprint('register', __name__)
 
@@ -39,7 +39,7 @@ def nextNumReg(rg):
         num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.year==datetime.today().year,literal_column(f"sender_user.alias = '{rg[2]}'"),Note.flow=='in'))) )
     else:
         num = db.session.scalar( select(func.max(literal_column("num"))).select_from(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg==rg[2],Note.year==datetime.today().year,Note.flow=='out'))) )
-
+    
     # Now adding +1 to num or start numeration of the year
     if num:
         num += 1
@@ -52,6 +52,8 @@ def nextNumReg(rg):
     elif rg[2] == 'r':
         num = 2000
     elif rg[0] == 'min':
+        num = 1
+    else: # it is a ctr making the first note of the year
         num = 1
 
     return num
@@ -196,12 +198,11 @@ def reg_title(reg,note=None):
     rg = reg.split('_')
 
     if rg[0] == 'des':
-        if rg[1] == 'in':
-            return 'Despacho'
-        else:
-            return 'Outbox'
+        return 'Despacho'
     elif rg[0] == 'pen':
         return 'My notes'
+    elif rg[0] == 'box' and rg[1] == 'out':
+        return 'Notes from cr to be sent to cg, asr, r and ctr'
     elif rg[0] == 'cr':
         if rg[1] == 'all':
             return "Notes history"
@@ -221,12 +222,14 @@ def reg_title(reg,note=None):
 def inbox_scr():
     output = request.form.to_dict()
     if "importeml" in output:
+        # Searching for eml to import
         path = f"{current_user.local_path}/Inbox"
         files = os.listdir(path)
         for file in files:
             if file.split('.')[-1] == 'eml':
                 read_eml(f"{path}/{file}")
         
+        # Searching for notes in from asr
         asr_files = files_path("/team-folders/Data/Mail/Mail asr")
         for file in asr_files:
             rst = move_path(file['display_path'],"/team-folders/Data/Mail/IN")
@@ -241,12 +244,20 @@ def inbox_scr():
                 fl = File(path=path,permanent_link=link,sender="asr",date=date.today())
             db.session.add(fl)
 
+        # Searching for notes sent by the ctr. reg = ctr, flow = in and state = 1
+        sender = aliased(User,name="sender_user")
+        notes = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg=='ctr',Note.flow=='in',Note.state==1)))
+        for note in notes:
+            rst = note.move(f"/team-folders/Data/Notes/{note.year}/ctr in/")
+            if rst:
+                note.state = 2
+
         db.session.commit()
 
     elif "notesfromfiles" in output:
         files = db.session.scalars(select(File).where(File.note_id==None))
+        involved_notes = []
         for file in files:
-            #print(output)
             gfk = file.guess_fullkey(output[f"number_{file.id}"])
             if gfk == "":
                 continue
@@ -257,6 +268,7 @@ def inbox_scr():
             if nt:
                 file.move_to_note(nt.path_note)
                 nt.addFile(file)
+                if not nt in involved_notes: involved_notes.append(nt)
             else: # We need to create the note
                 num = re.findall(r'\d+',gfk)[0]                
                 year = re.findall(r'\d+',gfk)[1]                
@@ -267,7 +279,11 @@ def inbox_scr():
                     nt = Note(num=num,year=year,sender_id=sender.id,reg='r',state=2,content=content)
                 
                 nt.addFile(file)
+                if not nt in involved_notes: involved_notes.append(nt)
                 db.session.add(nt)
+        
+        for note in involved_notes:
+            note.updateFiles()
 
         db.session.commit()
 
@@ -340,6 +356,27 @@ def register():
         return redirect(session['lasturl'])
 
     output = request.form.to_dict()
+
+    if 'sendmail' in output: # We are sending mail
+        sender = aliased(User,name="sender_user")
+        tosendnotes = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.flow=='out',Note.state==1))
+        
+        for nt in tosendnotes:
+            #rst = nt.move(f'/team-folders/Data/Notes/{nt.year}/{nt.reg} out')
+            rst = True
+            if not rst:
+                continue
+
+            if nt.reg in ['cg','r']: # We have to generate the eml
+                rec = ",".join([rec.email for rec in nt.receiver])
+                path = f"{current_user.local_path}/Outbox"
+                write_eml(rec,nt,path)
+
+            if nt.reg == 'asr': # Note for asr. We just copy it to the right folder
+                pass
+            
+            if nt.reg == 'ctr': # note for a ctr. We just change the state
+                nt.state = 6
 
     if 'upload' in output:
         files = request.files.getlist('files')

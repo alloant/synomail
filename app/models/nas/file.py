@@ -10,12 +10,12 @@ class FileNas(object):
             self.path = rst['data']['display_path'].split('/')[-1]
 
     def move(self,dest,dest_original = None):
-        rst = move_path(self.file_id,dest)
-        if rst:
-            if self.original_name and dest_original:
-                move_path(self.original_id,dest_original)
-            self.path = dest
-            self.file_id = rst['id']
+        rst = move_path(self.path,f"{dest}")
+        #if rst:
+        #    if self.original_name and dest_original:
+        #        move_path(self.original_id,dest_original)
+        #    self.path = dest
+        #    self.file_id = rst['id']
         
         return rst
 
