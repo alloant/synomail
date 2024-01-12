@@ -1,3 +1,0 @@
-1. In can see only limitations like permanente, return and and_ not a case
-
-2. The status in cr_out is not working
