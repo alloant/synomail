@@ -1,12 +1,9 @@
 # Config and data
-config.py
-config_mariadb.py
-config_sqlite.py
+config_backup.py
+
 *.db
 *.sh
-migrations/
-migrations_mariadb_nas_docker/
-migrations_sqlite/
+migrations*/
 
 todo.txt
 Dockerfile_*
