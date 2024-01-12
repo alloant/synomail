@@ -17,13 +17,18 @@ This Flask project integrates Synology Drive, SQLAlchemy, and user authenticatio
 
 
 . Clone the repository: `git clone https://github.com/alloant/synomail`
+
 . Install dependencies: `pip install -r requirements.txt` or `poetry install`
+
 . Configure credentials SECRET_KEY (to encrypt the user passwords) and DATABASE_URI (to connect to the databse, otherwise it will default to SQlite)
+
 . Run the application: `python flask_app/app.py` or `waitress-serve -call 'app:create_app'`
 
 ### With docker
 
 . Clone the repository: `git clone https://github.com/alloant/synomail`
+
 . Build image: `docker build -t synomail .`
+
 . Run docker: `docker run --env SECRET_KEY="secret" DATABASE_URI="mariadb+pymysql://user:password@host/database?charset=utf8mb4"`
 
