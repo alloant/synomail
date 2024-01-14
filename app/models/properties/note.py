@@ -65,6 +65,17 @@ class NoteProp(object):
 
     @fullkey.expression
     def fullkey(cls):
+        """
+        return case(
+            (cls.flow=='in', cls.alias_sender + " " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            (cls.reg == "cg", "Aes " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            (cls.reg == "asr", "cr-asr " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            (cls.reg == "ctr", "cr " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            (cls.reg.contains(","), "Aes-r " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            (cls.reg == "r", "Aes-r" + " " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
+            else_="",
+        )
+        """
         return case(
             (cls.flow=='in', literal_column("sender_user.alias") + " " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
             (cls.reg == "cg", "Aes " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
@@ -74,7 +85,8 @@ class NoteProp(object):
             (cls.reg == "r", "Aes-r" + " " + cls.num.cast(db.String) + "/" + (cls.year % 100).cast(db.String)),
             else_="",
         )
-    
+   
+
     @hybrid_property
     def flow(self) -> str:
         return 'out' if any(map(lambda v: v in self.sender.groups, ['cr'])) else 'in'

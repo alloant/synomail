@@ -22,22 +22,21 @@ def register_filter(rg):
         if rg[0] == 'cr':
             fn.append(Note.reg==rg[2]) # Type reg (cg,asr,r,ctr) 
             fn.append(Note.flow==rg[1]) # Flow is in/out
-            fn.append(or_(Note.state>=5,Note.sender==current_user)) # Only notes after desacho or already sent unless I am the sender
+            fn.append(or_(Note.state>=5,Note.sender.has(User.id==current_user.id))) # Only notes after desacho or already sent unless I am the sender
         else: # Then we are in pendings
             if not session['showAll']:
                 fn.append(Note.state < 6)
-            fn.append(or_(Note.sender==current_user,Note.receiver.contains(current_user)))
+            fn.append(or_(Note.sender.has(User.id==current_user.id),Note.receiver.any(User.id==current_user.id)))
     elif rg[0] == 'cl': # The register of a center
-        ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
         fn.append(Note.reg!='min') # No minutas
         if rg[1] == 'in': # show notes to the ctr. Flow==out for database
-            fn.append(Note.receiver.contains(ctr))
+            fn.append(Note.receiver.any(User.alias==rg[2]))
             fn.append(Note.state>=5)
         else:
-            fn.append(Note.sender==ctr)
+            fn.append(Note.sender.has(User.alias==rg[2]))
     elif rg[0] == 'min':
         fn.append(Note.reg=='min')
-        fn.append(or_(Note.sender==current_user,Note.receiver.contains(current_user)))
+        fn.append(or_(Note.sender.has(User.id==current_user.id),Note.receiver.any(User.id==current_user.id)))
     elif rg[0] == 'des':
         fn.append(Note.reg!='min')
         fn.append(Note.state>1)
@@ -49,17 +48,16 @@ def register_filter(rg):
 
     # Find filter in fullkey, sender, receivers or content
     if 'filter_notes' in session:
-        fuser = db.session.scalar(select(User).where(User.alias == session['filter_notes']))
-        ofn = [
-            Note.fullkey.contains(session['filter_notes']),
-            Note.content.contains(session["filter_notes"])
-        ]
-    
-        if fuser:
-            ofn.append(Note.sender == fuser)
-            ofn.append(Note.receiver.contains(fuser))
+        if session['filter_notes'] != "":
+            fuser = db.session.scalar(select(User).where(User.alias == session['filter_notes']))
+            ofn = [
+                Note.fullkey.contains(session['filter_notes']),
+                Note.content.contains(session["filter_notes"]),
+                Note.sender.has(User.alias==session['filter_notes']),
+                Note.receiver.any(User.alias==session['filter_notes'])
+            ]
         
-        fn.append(or_(*ofn))
+            fn.append(or_(*ofn))
 
     return fn
 
@@ -179,10 +177,7 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     page = args.get('page', 1, type=int)
     sender = aliased(User,name="sender_user")
     sql = select(Note).join(Note.sender.of_type(sender))
-    sql = sql.where(and_(*fn)).group_by(Note.id).order_by(Note.date.desc(), Note.num.desc())
-    
-    temp = db.session.scalars(sql).all()
-    print(len(temp),'!!!!!!!!!!!!!!!')
+    sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
 
     notes = db.paginate(sql, per_page=30)
     

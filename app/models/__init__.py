@@ -7,6 +7,7 @@ from flask_login import UserMixin
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import select
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
 
@@ -110,6 +111,16 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
 
         return False
 
+    @hybrid_property
+    def alias_sender(self):
+        return self.sender.alias
+
+    @alias_sender.expression
+    def alias_sender(cls):
+        alsend = db.session.scalar(select(User.alias).where(User.id==cls.sender_id))
+        return alsend
+        return select(User.alias).where(User.id==cls.sender_id)
+    
 class User(UserProp,UserMixin, db.Model):
     __tablename__ = 'user'
 
