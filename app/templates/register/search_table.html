@@ -6,15 +6,17 @@
     
   {% endif %}
  
-  <form class="d-flex p-2 flex-grow-1" method="POST">
+  <form class="d-flex p-2 flex-grow-1" action="?reg={{reg}}" method="POST">
+    {% if 'pen' in reg %}
     <div class="form-check form-switch me-2">
-      {% if showAll %}
+      {% if session['showAll'] %}
         <input class="form-check-input" onChange="this.form.submit()" type="checkbox" id="flexSwitchCheckDefault" name="showAll" checked>
       {% else %}
         <input class="form-check-input" onChange="this.form.submit()" type="checkbox" id="flexSwitchCheckDefault" name="showAll">
       {% endif %}
       <label class="form-check-label" for="flexSwitchCheckDefault">All</label>
     </div>
+    {% endif %}
     <input type="search" class="form-control me-2" placeholder="Search" aria-label="Search" name="notes_filter">
     <button type="submit" class="btn btn-primary"><i class="bi-search"></i></button>
   </form>

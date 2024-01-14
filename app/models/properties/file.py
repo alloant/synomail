@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import select
 
 from app import db
-from app.models.user import User
+#from app.models.user import User
 
 class FileProp(object):
     @property

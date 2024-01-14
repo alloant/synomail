@@ -1,13 +1,11 @@
 from datetime import date
 
-from flask import flash
+from flask import flash, session
 
 from sqlalchemy import case, and_, or_, not_, select, type_coerce, literal_column, func, union
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
-#from ..file import File
-from ..user import User
 
 class NoteProp(object):
     @hybrid_property
@@ -84,63 +82,10 @@ class NoteProp(object):
     @flow.expression
     def flow(cls):
         return case(
-            (literal_column(fr"sender_user.u_groups regexp '\\bcr\\b'"),'out'),
+            (cls.sender_id.in_(session['cr']),'out'),
             else_='in'
         )
-    
-    @hybrid_method
-    def user_can_see(self, user: User,reg: str) -> bool:
-        if 'per' in self.groups:
-            return True if 'per' in user.groups else False
-        elif self.reg in ['cg','asr','r']:
-            return True if 'cr' in user.groups else False
-        elif self.reg == 'ctr':
-            if 'cr' in user.groups: return True
-            if 'cl' in user.groups:
-                ctr = user.alias.split(' ')[1]
-                for senrec in [self.sender] + self.receiver:
-                    if senrec.alias == ctr: return True
-        
-        return False
-
-
-    @user_can_see.expression
-    def user_can_see(cls,user,reg):
-        rg = reg.split('_')
-        cond = [case((cls.permanent,'per' in user.groups),else_=True)]
-        
-        if rg[0] == 'box':
-            cond.append(cls.state==1)
-            cond.append(cls.reg!='min')
-        elif rg[0] == 'des':
-            cond.append(cls.state>1)
-            cond.append(cls.state<4)
-            cond.append(cls.reg!='min')
-        elif rg[0] == 'pen':
-            cond.append(cls.reg!='min')
-            cond.append(cls.state>3)
-            cond.append(or_(and_(cls.state==0,literal_column(f"sender_user.alias = 'user.alias'")),literal_column(f"receiver_user.alias = '{user.alias}'")))
-        else:
-            if rg[0] == 'cl':
-                #cond.append(or_(cls.state>3,literal_column(f"sender_user.alias = '{rg[2]}'")))
-                cond.append(cls.reg=='ctr')
-                if rg[1] == 'out': #it is a note from ctr to cg
-                    cond.append(literal_column(f"sender_user.alias = '{rg[2]}'"))
-                else:
-                    cond.append(cls.state>3)
-                    cond.append(literal_column(f"receiver_user.alias = '{rg[2]}'"))
-            elif rg[0] == 'min':
-                cond.append(cls.reg=='min')
-                cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),cls.received_by.contains(user.alias)))
-                #cond.append(or_(literal_column(f"sender_user.alias = '{user.alias}'"),literal_column(f"receiver_user.alias = '{user.alias}'")))
-            else:
-                cond.append(or_(cls.state>3,cls.sender_id==user.id))
-                if rg[1] != 'all':
-                    cond.append(cls.reg==rg[2])
-                    cond.append(cls.flow==rg[1])
-
-        return and_(*cond)
-
+   
     @property
     def note_folder(self):
         folder = self.fullkey.split("/")[0]
@@ -198,21 +143,27 @@ class NoteProp(object):
             inc = 1
         
         self.read_by = ",".join(rb)
+        db.session.commit()
         return inc
 
-    def updateState(self,reg,user,again=False):
+    def updateState(self,reg,user):
         rg = reg.split("_")
         if rg[0] == 'box': # Is the scr getting mail from cg, asr, ctr or r
             # Here we move to Archive and if the move is succesful we put state 2
             self.state = 2
         elif rg[0] == 'des': # Here states are only 2 or 3
             self.state += self.updateRead(f"des_{user.alias}")
-        elif self.reg in ['cg','asr','r','ctr']: #Here the states could be 4-6
-            if self.rel_flow(reg) == 'in':
-                if self.state < 6:
-                    self.state += 1
-                else:
-                    self.state -= 1
+        elif rg[0] == 'cl':
+            if self.flow == 'out': # Note from cr to the ctr
+                self.state = 6 if self.state == 5 else 5
+            else:
+                if self.state == 0: # sending to cr
+                    self.state = 1
+                elif self.state == 1: # taking it back before the scr archive it
+                    self.state =0
+        elif rg[0] == 'cr': # Here the states could be 4-6
+            if self.flow == 'in': # Notes from cg,asr,r,ctr. They could be 5 or 6
+                self.state = 6 if self.state == 5 else 5
             else: # Is out. Only to pass from 0 to 1
                 if self.state == 0:
                     self.state = 1
@@ -228,11 +179,7 @@ class NoteProp(object):
                 elif self.state == 4:
                     self.state = 0
                 elif self.state == 2:
-                    if again:
-                        self.state = 4
-                        self.read_by = self.sender.alias
-                    else:
-                        self.state = 6
+                    self.state = 6
             else:
                 rb = self.read_by.split('_') if self.read_by != '' else []
                 rb.append(user.alias)
@@ -247,4 +194,5 @@ class NoteProp(object):
                 
                 if not has_next:
                     self.state = 2
-
+        
+        db.session.commit()

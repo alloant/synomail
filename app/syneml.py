@@ -11,7 +11,7 @@ from pathlib import Path
 
 from app import db
 from .models.nas.nas import upload_path, convert_office, move_path, download_path
-from .models.file import File
+from .models import File
 #import libsynomail.connection as con
 
 INV_EXT = {'osheet':'xlsx','odoc':'docx'}

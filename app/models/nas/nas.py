@@ -9,7 +9,7 @@ from pathlib import Path
 
 from flask import current_app
 from flask_login import current_user
-from app.models.user import User
+
 from cryptography.fernet import Fernet
 
 
@@ -21,11 +21,10 @@ def wrap_error(func, *args):
         USER = current_user.alias
 
         cipher = Fernet(current_app.config['SECRET_KEY'])
-        PASSWD = User.query.where(User.alias==USER).first().password_nas
-        PASSWD = cipher.decrypt(PASSWD)
+        #PASSWD = User.query.where(User.alias==USER).first().password_nas
+        PASSWD = cipher.decrypt(current_user.password_nas)
         with SynologyDrive(USER,PASSWD,"nas.prome.sg",dsm_version='7') as synd:
             return func(synd,*args)
-        print('fuera')
         return None
     except Exception as err:
         if type(err).__name__ == 'SynologyException':

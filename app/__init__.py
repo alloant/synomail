@@ -1,10 +1,13 @@
 # init.py
 
-from flask import Flask
+from flask import Flask, session
 from flask_login import LoginManager 
 from flask_bootstrap import Bootstrap5
+
 from config import Config
+
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import select, func
 from sqlalchemy.orm import DeclarativeBase
 from flask_migrate import Migrate
 
@@ -25,8 +28,7 @@ def create_app(config_class=Config):
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
     
-    
-    from .models.user import User
+    from .models import User
 
     @login_manager.user_loader
     def load_user(user_id):

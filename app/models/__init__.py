@@ -1,14 +1,44 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 
+from flask_login import UserMixin
+
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import select
-from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app import db
 
-from .user import User
+from .properties.file import FileProp
+from .nas.file import FileNas
+
 from .properties.note import NoteProp
 from .html.note import NoteHtml
 from .nas.note import NoteNas
+
+from .properties.user import UserProp
+
+class File(FileProp,FileNas,db.Model):
+    __tablename__ = 'file'
+
+    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
+    date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
+    subject: Mapped[str] = mapped_column(db.String(150), default = '')
+    path: Mapped[str] = mapped_column(db.String(150), default = '')
+    permanent_link: Mapped[str] = mapped_column(db.String(150), default = '')
+    sender: Mapped[str] = mapped_column(db.String(20), default = '')
+    note_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('note.id'),nullable=True)
+    
+    note: Mapped["Note"] = relationship(back_populates="files")
+   
+
+    def __repr__(self):
+        return f'<File "{self.name}">'
+
+    def __str__(self):
+        return self.name
+
 
 note_ref = db.Table('note_ref',
                 db.Column('note_id', db.Integer, db.ForeignKey('note.id')),
@@ -79,3 +109,35 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
                 return True
 
         return False
+
+class User(UserProp,UserMixin, db.Model):
+    __tablename__ = 'user'
+
+    id: Mapped[int] = mapped_column(db.Integer, primary_key=True) # primary keys are required by SQLAlchemy
+    password: Mapped[str] = mapped_column(db.String(500), default='')
+    password_nas: Mapped[str] = mapped_column(db.String(500), default='')
+
+    date: Mapped[datetime.date] = mapped_column(db.Date, default=datetime.utcnow())
+    name: Mapped[str] = mapped_column(db.String(200), default='')
+    alias: Mapped[str] = mapped_column(db.String(20), unique=True)
+    u_groups: Mapped[str] = mapped_column(db.String(200), default=False)
+    order: Mapped[str] = mapped_column(db.Integer, default=0)
+
+    email: Mapped[str] = mapped_column(db.String(200), default='')
+    description: Mapped[str] = mapped_column(db.String(200), default='')
+    
+    local_path: Mapped[str] = mapped_column(db.String(200), default='')
+    
+    active: Mapped[str] = mapped_column(db.Boolean, default=True)
+    admin_active: Mapped[str] = mapped_column(db.Boolean, default=False)
+
+    outbox: Mapped[list["Note"]] = relationship(back_populates="sender")
+
+    def __repr__(self):
+        return self.alias
+    
+    def __lt__(self,other):
+        return self.order < other.order
+
+    def __gt__(self,other):
+        return self.order > other.order

@@ -1,6 +1,6 @@
 # forms.py
 
-from app.models.user import User
+from app.models import User
 
 from wtforms import Form, BooleanField, StringField, PasswordField, validators, SubmitField, IntegerField
 

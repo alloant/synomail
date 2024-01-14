@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
 from .nas import create_folder, get_info, files_path, move_path, copy_path
-from app.models.file import File
+#from app.models.file import File
 
 class NoteNas(object): 
     @property
@@ -82,6 +82,8 @@ class NoteNas(object):
                 self.permanent_link = rst['permanent_link']
 
     def move(self,dest):
+        if self.path == dest:
+            return True
         rst = move_path(self.path_note,dest)
         if rst:
             self.path = dest

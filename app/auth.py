@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app import db
 from .forms.login import LoginForm, RegistrationForm, UserForm
-from .models.user import User
+from .models import User
 
 bp = Blueprint('auth', __name__)
 

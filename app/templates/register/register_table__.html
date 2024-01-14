@@ -5,9 +5,9 @@
   <table class="table table-sm table-striped">
     <thead class="">
       <tr class="bg-dark">
-        <th scope="col">Protocol</th>
         <th scope="col"></th>
         <th scope="col">Date</th>
+        <th scope="col">No</th>
         {% if not 'cl_' in reg %}
         <th scope="col">Dep</th>
         {% endif %}
@@ -18,7 +18,7 @@
     </thead>
     <tbody>
     {% for note in notes %}
-        {% include 'register/table_row.html' %}
+        {% include 'register/register_table_row.html' %}
     {% endfor %}
     </tbody>
   </table>
