@@ -7,7 +7,7 @@ class FileNas(object):
     def move_to_note(self,dest):
         rst = move_path(self.path,dest)
         if rst:
-            self.path = rst['data']['display_path'].split('/')[-1]
+            self.path = self.path.split('/')[-1]
 
     def move(self,dest,dest_original = None):
         return move_path(self.path,f"{dest}")

@@ -1,28 +1,60 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
 
 from flask import render_template, url_for, session, redirect
 from flask_login import current_user
 
 from sqlalchemy import select, and_, or_, literal_column
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql import text
 
 from app import db
 from app.models import Note, User
 from app.mail import send_email
+from app.syneml import write_eml
 
-from .tools import view_title, newNote
+from .tools import view_title, newNote, filter_from_protocol
 
-def register_filter(rg):
+def find_history(note):
+    sql = text(
+            f"with recursive R as ( \
+            select note_id as n, ref_id as r from note_ref where note_id = {note} or ref_id = {note} \
+            UNION \
+            select note_ref.note_id,note_ref.ref_id from R,note_ref where note_ref.note_id = R.r or note_ref.ref_id = R.n \
+            ) \
+            select n,r from R"
+        )
+
+    d_nids = db.session.execute(sql).all()
+
+    nids = [note]
+    for nid in d_nids:
+        nids += nid
+
+    nids = list(set(nids))
+    print(nids)
+
+    return Note.id.in_(nids)
+
+
+def register_filter(rg,h_note = None):
     fn = []
     if rg[0] in ['cr','pen']: # Register for cr or pendings
         if not 'permanente' in current_user.groups:
             fn.append(Note.permanent==False)
-        fn.append(Note.reg!='min') # No minutas
+        
+        if rg[1] != 'all':
+            fn.append(Note.reg!='min') # No minutas
+
         if rg[0] == 'cr':
-            fn.append(Note.reg==rg[2]) # Type reg (cg,asr,r,ctr) 
-            fn.append(Note.flow==rg[1]) # Flow is in/out
-            fn.append(or_(Note.state>=5,Note.sender.has(User.id==current_user.id))) # Only notes after desacho or already sent unless I am the sender
+            if rg[1] == 'all': # here is the note history
+                fn.append(or_(Note.reg!='min',and_(Note.reg=='min',or_(Note.state>=5,Note.sender.has(User.id==current_user.id))))) # Only notes after desacho or already sent unless I am the sender
+                fn.append(find_history(h_note)) 
+            else:
+                fn.append(Note.reg==rg[2]) # Type reg (cg,asr,r,ctr) 
+                fn.append(Note.flow==rg[1]) # Flow is in/out
+                fn.append(or_(Note.state>=5,Note.sender.has(User.id==current_user.id))) # Only notes after desacho or already sent unless I am the sender
         else: # Then we are in pendings
             if not session['showAll']:
                 fn.append(Note.state < 6)
@@ -40,7 +72,7 @@ def register_filter(rg):
     elif rg[0] == 'des':
         fn.append(Note.reg!='min')
         fn.append(Note.state>1)
-        fn.append(Note.state<4)
+        fn.append(Note.state<5)
     elif rg[0] == 'box':
         fn.append(Note.reg!='min')
         fn.append(Note.flow=='out')
@@ -49,7 +81,8 @@ def register_filter(rg):
     # Find filter in fullkey, sender, receivers or content
     if 'filter_notes' in session:
         if session['filter_notes'] != "":
-            fuser = db.session.scalar(select(User).where(User.alias == session['filter_notes']))
+            #filter_from_protocal(session['filter_notes'])
+            
             ofn = [
                 Note.fullkey.contains(session['filter_notes']),
                 Note.content.contains(session["filter_notes"]),
@@ -119,6 +152,7 @@ def register_actions(output,args): # Actions like new note, update read/state, u
 def register_view(output,args): # Use for all register in/out for cr and ctr, for pendings, for despacho and for outbox
     note = args.get('note')
     reg = args.get('reg')
+    h_note = args.get('h_note')
     rg = reg.split("_") 
 
     # Sending to last url
@@ -173,7 +207,7 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
         session['showAll'] = output['showAll']
 
 
-    fn = register_filter(rg)
+    fn = register_filter(rg,h_note)
     page = args.get('page', 1, type=int)
     sender = aliased(User,name="sender_user")
     sql = select(Note).join(Note.sender.of_type(sender))

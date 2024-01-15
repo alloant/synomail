@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import render_template, redirect, session
+from flask import render_template, redirect, session, flash
 from flask_login import current_user
 
 from sqlalchemy import select

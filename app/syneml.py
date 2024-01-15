@@ -1,6 +1,11 @@
 import eml_parser
 import io
 import base64
+from datetime import date
+
+from flask import flash
+
+from sqlalchemy import select, and_
 
 from email import generator
 from email.mime.application import MIMEApplication
@@ -57,25 +62,32 @@ def read_eml(file_eml,emails = None):
     
     dest = "/team-folders/Data/Mail/IN"
 
-    if sender == "cg@cardumen.org":
-        bf = 'cg'
-        if subject == 'Nota de envíos':
-            pass
-    else:
-        bf = 'r'
-
-    if bf == 'r' and emails:
-        for r,email in emails.items():
-            if sender.lower() == email['email'].lower():
-                bf += f"_{r}"
-                break
-
     if 'attachment' in parsed_eml:
         attachments = parsed_eml['attachment']
     
         for file in attachments:
+            fext = file['filename'].split(".")[-1]
+            if fext in EXT.keys():
+                fn = f"{file['filename'][:-len(fext)]}{EXT[fext]}"
+            else:
+                fn = file['filename']
+
+            rnt = db.session.scalar(select(File).where(and_(File.path.contains(fn),File.sender==sender)))
+            exists = False
+            
+            if rnt: # Note same name but could be different year
+                dt = rnt.note.year if rnt.note else rnt.date.year
+                
+                if dt == date.today().year:
+                    exists = True
+              
+            if exists:
+                flash(f"The file {file['filename']} is already in the database")
+                return False
+        
+        for file in attachments:
             b_file = io.BytesIO(base64.b64decode(file['raw']))
-            b_file.name = f"{bf}_{file['filename']}"
+            b_file.name = f"{file['filename']}"
             
             rst = upload_path(b_file,dest)
             if not rst:
@@ -84,7 +96,7 @@ def read_eml(file_eml,emails = None):
             path = rst['data']['path']
             link = rst['data']['permanent_link']
             
-            if file['filename'].split(".")[-1] in ['xls','xlsx','docx','rtf']:
+            if file['filename'].split(".")[-1] in EXT.keys():
                 path,fid,link = convert_office(rst['data']['display_path'])
                 move_path(rst['data']['display_path'],f"{dest}/Originals")
 

@@ -9,7 +9,6 @@
         <th>Name</th>
         <th>Sender</th>
         <th>No</th>
-        <th>Content</th>
         <th>Ref</th>
       </tr>
     </thead>
@@ -22,7 +21,6 @@
         <td><a href="https://nas.prome.sg:5001/oo/r/{{file.permanent_link}}" target="_blank">{{ file.path.split('/')[-1] }}</a></td>
         <td>{{ file.sender }}</td>
         <td><input type="text" name="number_{{file.id}}" placeholder="nnn/yy" value="{{ file.guess_number }}"></td>
-        <td><input type="text" name="content_{{file.id}}" placeholder="Content" value="{{ file.guess_content }}"></td>
         <td>
         {% for fk,ref in file.guess_ref %}
           <a href="/register?reg=cr_all_cg&h_note={{ref}}" target="_blank">{{ fk }}</a>

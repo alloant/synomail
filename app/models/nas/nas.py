@@ -7,7 +7,7 @@ import time
 import logging
 from pathlib import Path
 
-from flask import current_app
+from flask import current_app, flash
 from flask_login import current_user
 
 from cryptography.fernet import Fernet
@@ -31,7 +31,8 @@ def wrap_error(func, *args):
             message = f"Synology error: {err.message} in {func.__name__} with parameters {args}"
         else:
             message = f"{err} in {func.__name__} with parameters {args}"
-        
+         
+        flash(message)
         logging.warning(message)
 
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from flask_login import UserMixin
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
@@ -39,6 +39,14 @@ class File(FileProp,FileNas,db.Model):
 
     def __str__(self):
         return self.name
+
+    def get_user(self,field,value = None):
+        if field == 'email':
+            return db.session.scalar(select(User).where(User.email==self.sender))
+        elif field == 'alias':
+            return db.session.scalar(select(User).where(User.alias==value))
+        else:
+            return None
 
 
 note_ref = db.Table('note_ref',
@@ -89,8 +97,8 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         self.sender = db.session.scalar(select(User).where(User.id==self.sender_id))  
         
         folder = self.sender.alias
-        if 'cg' in self.sender.groups or 'r' in self.sender.groups:
-            self.path = f"/team-folders/Data/Notes/{int(self.year)+2000}/{self.reg} in"
+        if self.sender.alias in ['cg','asr'] or 'r' in self.sender.groups:
+            self.path = f"/team-folders/Data/Notes/{self.year}/{self.reg} in"
         elif self.reg == 'min':
             self.path = f"/team-folders/Data/Minutas/{folder}/Minutas/{datetime.now().year}"
         else:
@@ -110,6 +118,13 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
                 return True
 
         return False
+
+    def deleteFiles(self,files_id):
+        db.session.execute(delete(File).where(File.id.in_(files_id)))
+
+    def addFileArgs(self,*args,**kargs):
+        print('HERERER')
+        self.addFile(File(**kargs))
 
     @hybrid_property
     def alias_sender(self):

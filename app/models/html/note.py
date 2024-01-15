@@ -12,7 +12,7 @@ class NoteHtml(object):
     def fullkey_link_html(self,reg):
         rg = reg.split("_")
         nreg = 'cr' if rg[0] == 'min' else rg[0]
-        a = ET.Element('a',attrib={'href':f'?ref={nreg}_all_{rg[2]}&h_note={self.id}','target':'_blank','data-bs-toggle':'tooltip','title':self.receivers})
+        a = ET.Element('a',attrib={'href':f'?reg={nreg}_all_{rg[2]}&h_note={self.id}','target':'_blank','data-bs-toggle':'tooltip','title':self.receivers})
         a.text = f"{self.keyto(True,True)}/{self.year-2000}"
 
         if self.permanent:
@@ -84,13 +84,21 @@ class NoteHtml(object):
 
 
     def state_cl_html(self,reg,user):
+        rg = reg.split("_")
         if self.flow == 'out': # Notes in for the ctr. 3 options: no read, read and done
-            color = "orange" if self.state < 6 else "gray"
             if self.is_read(user):
-                icon = "bi-envelope-open-fill"
-                text = "Mark as done" if self.state < 6 else "Mark as undone"
-                action = "state"
+                if self.is_done(rg[2]):
+                    icon = "bi-check-circle"
+                    action = "state"
+                    text = "Mark as undone"
+                    color = "green"
+                else:
+                    icon = "bi-clock-history"
+                    action = "state"
+                    text = "Mark as done"
+                    color = "red"
             else:
+                color = "gray"
                 icon = "bi-envelope-fill"
                 text = "Mark as read"
                 action = "read"
@@ -124,14 +132,15 @@ class NoteHtml(object):
         if self.is_read(f"des_{user.alias}"):
             icon = "bi-hourglass-bottom"
             color = "gray"
-            text = "Remove my signature (waiting other signature)"
+            text = "Unsign note (other dr has already signed)"
         else:
-            if self.state == 2: #Nobody has check it before
+            if self.state == 3: #Nobody has check it before
+                text = "Sign note"
                 icon = "bi-circle-fill"
             else:
-                icon = "bi-check"
+                text = "Sign note (the other d has already signed)"
+                icon = "bi-check-circle"
             color = "orange"
-            text = "Sign note"
 
         a = ET.Element('a',attrib={'href':f'?reg={reg}&state={self.id}','data-bs-toggle':'tooltip','title':text})
         i = ET.Element('i',attrib={'class':f'bi {icon}','style':f'color: {color};'})
@@ -148,7 +157,8 @@ class NoteHtml(object):
             i = ET.Element('i',attrib={'class':'bi bi-send','style':'color: orange;'})
         
         a.append(i)
-        
+       
+        return ""
         return ET.tostring(a,encoding='unicode',method='html') 
     
     def state_cr_html(self,reg,user):         

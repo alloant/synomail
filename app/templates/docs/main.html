@@ -1,0 +1,35 @@
+<!-- templates/profile.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="title text-center display-4">
+  Documentation
+</h1>
+
+{% if 'cl_' in current_user.u_groups %}
+  <p class="title text-center display-6">
+    <a class="" href="?topic=cl">For cl</a>
+  </p>
+{% endif %}
+
+{% if 'cr' in current_user.groups %}
+  <p class="title text-center display-6">
+    <a class="" href="?topic=cr">For cr</a>
+  </p>
+{% endif %}
+
+{% if 'despacho' in current_user.groups %}
+  <p class="title text-center display-6">
+    <a class="" href="?topic=des">For despacho</a>
+  </p>
+{% endif %}
+
+{% if 'scr' in current_user.groups %}
+  <p class="title text-center display-6">
+    <a class="" href="?topic=scr">For scr</a>
+  </p>
+{% endif %}
+
+
+{% endblock %}

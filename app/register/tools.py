@@ -12,6 +12,26 @@ from app import db
 from app.models import User
 from app.models import Note
 
+def filter_from_protocol(text):
+    rst = []
+    # Find first notes to cg
+    rst += re.findall(r'Aes')
+    protocols = re.findall(r'\w+.\d+\/\d+',session['filter_notes'])
+    protocols_cg = re.findall(r'\d+\/\d+',session['filter_notes'])
+    fn = []
+    for prot in protocols:
+        alias = re.findall(r'\w+',prot)
+        num = re.findall(r'\d+',prot)
+        if alias:
+            if 'Aes' in alias[0]: # It is out note
+                if "-" in alias[0]:
+                    pass
+                else: # Is a note to cg
+                    pass
+            user = db.session.scalar(select(User).where(User.alias==alias[0]))
+            if user:
+                pass 
+
 def get_cr_users():
     if not 'cr' in session or len(session['cr']) == 0:
         session['cr'] = [user.id for user in db.session.scalars(select(User).where(User.u_groups.regexp_match('\\bcr\\b')))]

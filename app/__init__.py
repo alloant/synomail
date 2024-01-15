@@ -42,4 +42,7 @@ def create_app(config_class=Config):
     from .register import bp as register_blueprint
     app.register_blueprint(register_blueprint)
     
+    from .docs import bp as documentation_blueprint
+    app.register_blueprint(documentation_blueprint)
+    
     return app

@@ -144,20 +144,27 @@ class NoteNas(object):
             return False
 
         files = files_path(self.path_note)
-        #if not files:
-        #    return False
 
+        # Just checking the files that are already assigned to the note and fixing the path of the file in the case it has not been yet 
         ntfiles = []
         for file in self.files:
             if "/" in file.path:
-                if file.move(self.path_note):
-                    file.path = file.path.split("/")[-1]
+                file.move_to_note(self.path_note)
             ntfiles.append(file.path)
         
         if files:
+            extfiles = []
             for file in files:
                 if not file['name'] in ntfiles:
-                    self.addFile(File(path=file['name'],permanent_link=file['permanent_link']))
+                    kargs = {'path':file['name'],'permanent_link':file['permanent_link']} 
+                    self.addFileArgs(**kargs)
+                
+                extfiles.append(file['name'])
+                
+            rmfiles = [f.id for f in self.files if not f.path.split("/")[-1] in extfiles]
+            
+            self.deleteFiles(rmfiles)
+            
     
         db.session.commit()
 

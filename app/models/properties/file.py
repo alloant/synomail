@@ -4,7 +4,6 @@ from datetime import date
 from sqlalchemy import select
 
 from app import db
-#from app.models.user import User
 
 class FileProp(object):
     @property
@@ -57,7 +56,7 @@ class FileProp(object):
             return f"{int(temp[0])}/{date.today().year-2000}"
 
     def guess_fullkey(self,key = None):
-        sender = db.session.scalar(select(User).where(User.email==self.sender))
+        sender = self.get_user('email')
         if sender:
             prot = sender.alias
         else:
@@ -110,7 +109,7 @@ class FileProp(object):
                             tid = get_note_id(f"cg {n[0]}/{n[1]}")
                         else:
                             sd = r[0].split("-")[0]
-                            rst = db.session.scalar(select(User).where(User.alias==sd))
+                            rst = self.get_user('alias',sd)
                             if rst:
                                 tid = get_note_id(f"{sd} {n[0]}/{n[1]}")
                         

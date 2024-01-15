@@ -62,6 +62,11 @@ class NoteProp(object):
     @hybrid_property
     def fullkey(self):
         return f"{self.keyto()}/{str(self.year)[-2:]}"
+    
+    @hybrid_property
+    def fullkey2(self):
+        return self.sender.alias
+        #return f"{self.keyto()}/{str(self.year)[-2:]}"
 
     @fullkey.expression
     def fullkey(cls):
@@ -131,6 +136,11 @@ class NoteProp(object):
         else:
             return user.alias in self.read_by.split(",")
 
+    def is_done(self,user): #Use in state_cl and updateState for cl. We assume note is in for the ctr
+        if user in self.received_by.split(','):
+            return True
+        else:
+            return False
 
     def is_involve(self,user):
         return user in self.receiver
@@ -167,7 +177,10 @@ class NoteProp(object):
             self.state += self.updateRead(f"des_{user.alias}")
         elif rg[0] == 'cl':
             if self.flow == 'out': # Note from cr to the ctr
-                self.state = 6 if self.state == 5 else 5
+                if self.is_done(rg[2]):
+                    self.received_by = self.received_by.split(",").remove(rg[2])
+                else:
+                    self.received_by += f",{rg[2]}"
             else:
                 if self.state == 0: # sending to cr
                     self.state = 1
