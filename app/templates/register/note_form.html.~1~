@@ -6,60 +6,56 @@
     {{ form.csrf_token }}
     <fieldset class="form-group">
    
-    <div class="d-flex d-flex-wrap justify-content-center m-2" style="background-color: #eeeeee;">
-      
-      <div class="flex-grow-1 p-2">
+    <div class="row m-2" style="background-color: #eeeeee;">
+      <div class="col-8 p-2">
         <h3 class="mb-4">Data</h3>
-        
-        <div class="d-flex d-flex-wrap">
+        <div class="d-flex flex-wrap mb-4 mt-2">
           {% if user.admin and 'despacho' in user.groups %}
-            <div class="p-2">
-              <p></p>
-              <span data-bs-toggle="tooltip" title="Only permanente"><i class="bi bi-asterisk" style="color: red"></i></span>
+            <div class="container">
               {{ form.permanent(class="form-check-input") }}
+              {{ form.permanent.label(class="form-check-label") }}
             </div>
           {% endif %}
-          <div class="p-2">
+          <div class="container">
             {{ form.n_date.label(class="form-label") }}
             {{ form.n_date(class="form-control") }}
           </div>
-          <div class="p-2">
+          <div class="container">
             {{ form.year.label(class="form-label") }}
             {{ form.year(class="form-control") }}
           </div>
-          <div class="p-2">
+          <div class="container">
             {{ form.proc.label(class="form-label") }}
             {{ form.proc(class="form-control") }}
           </div>
-          <div class="p-2">
+          <div class="container">
             {{ form.sender.label(class="form-label") }}
             {{ form.sender(class="form-control") }}
           </div>
         </div>
-
-        <div class="mb-4">
+        <div class="container mb-4">
           {{ form.content.label(class="form-label") }}
           {{ form.content(class="form-control") }}
-        </div><div class="mb-4">
+        </div><div class="container mb-4">
           {{ form.content_jp.label(class="form-label") }}
           {{ form.content_jp(class="form-control") }}
         </div>
         {% if 'despacho' in user.groups %}
-          <div class="mb-4">
+          <div class="container mb-4">
             {{ form.comments.label(class="form-label") }}
             {{ form.comments(class="form-control") }}
           </div>
         {% endif %}
-        <div class="mb-4">
+        <div class="container mb-4">
           {{ form.ref.label(class="form-label") }}
           {{ form.ref(class="form-control") }}
         </div>
-        <div class="">
+        <div class="container">
           {{ form.submit(class="btn btn-primary")}}
         </div>
       </div>
       
-      <div class="p-2">
+      <div class="col-4 p-2">
         {% if ('cr' in user.groups and (note.flow == 'in' or note.reg in ['r','ctr'])) or 'admin' in user.groups %}
           <h3 class="mb-4">Receiver</h3>
           <input class="form-control mb-2" id="recInput" type="text" placeholder="Search..">
@@ -98,7 +94,6 @@
 
         {% endif %}
       </div>
-    
     </div>
 
     </fieldset>

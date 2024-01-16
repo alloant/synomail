@@ -5,7 +5,7 @@ from datetime import datetime
 
 from flask_login import UserMixin
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, aliased
 from sqlalchemy import select, delete
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
@@ -48,6 +48,12 @@ class File(FileProp,FileNas,db.Model):
         else:
             return None
 
+    def get_note_id(self,fullkey):
+        print(fullkey,'!!!!!!!!!!!!')
+        sender = aliased(User,name="sender_user")
+        nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==fullkey))
+        print(nt,'$$$$$$$$$$$$$$')
+        return nt.fullkey,nt.id if nt else None
 
 note_ref = db.Table('note_ref',
                 db.Column('note_id', db.Integer, db.ForeignKey('note.id')),

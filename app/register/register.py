@@ -153,7 +153,8 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     note = args.get('note')
     reg = args.get('reg')
     h_note = args.get('h_note')
-    rg = reg.split("_") 
+    if reg:
+        rg = reg.split("_") 
 
     # Sending to last url
     if reg == 'lasturl':
@@ -170,22 +171,24 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     rdct = False
         
     if 'cr' in current_user.groups:
-        if rg[0] == 'des' and not 'despacho' in current_user.groups:
-            rdct = True
+        if reg:
+            if rg[0] == 'des' and not 'despacho' in current_user.groups:
+                rdct = True
         
-        if rg[0] == 'box' and not 'scr' in current_user.groups:
-            rdct = True
+            if rg[0] == 'box' and not 'scr' in current_user.groups:
+                rdct = True
 
-        if rdct: 
+        if rdct or not reg: 
             return redirect(url_for('register.register', reg='pen_in_', page=1))
     else:
-        if rg[0] in ['cr','min','box','des']:
-            rdct = True
+        if reg:
+            if rg[0] in ['cr','min','box','des']:
+                rdct = True
         
-        if not f"cl_{rg[2]}" in current_user.groups:
-            rdct = True
+            if not f"cl_{rg[2]}" in current_user.groups:
+                rdct = True
 
-        if rdct:
+        if rdct or not reg:
             for gp in current_user.groups:
                 if gp[:3] == 'cl_':
                     break

@@ -69,9 +69,17 @@ def inbox_view(output,args):
             if gfk == "":
                 continue
 
-            content = output[f"content_{file.id}"]
+            
+            if ";" in file.subject:
+                parts = file.subject.split(";")
+                if "/" in parts[0]:
+                    content = parts[1]
+                else:
+                    content = ""
+
             sender = aliased(User,name="sender_user")
             nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==gfk))
+            
             if nt:
                 file.move_to_note(nt.path_note)
                 nt.addFile(file)
@@ -102,6 +110,20 @@ def inbox_view(output,args):
                 if not nt in involved_notes: involved_notes.append(nt)
                 db.session.add(nt)
         
+            refs = file.guess_ref
+            print(refs,'[][][][][][][][]')
+            if refs:
+                rfs = []
+                for rf in refs:
+                    rfs.append(rf[1])
+
+                nrefs = db.session.scalars(select(Note).where(Note.id.in_(rfs))).all()
+                for nr in nrefs:
+                    nt.ref.append(nr)
+            
+                if len(refs) != len(nrefs): # I didn't get all refs
+                    flash(f"There was a problem with {file.subject}. Not all references are in place")
+
         for note in involved_notes:
             note.updateFiles()
 
