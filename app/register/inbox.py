@@ -111,7 +111,6 @@ def inbox_view(output,args):
                 db.session.add(nt)
         
             refs = file.guess_ref
-            print(refs,'[][][][][][][][]')
             if refs:
                 rfs = []
                 for rf in refs:
@@ -139,11 +138,11 @@ def inbox_view(output,args):
     # Some indicators to help
     #ctr_notes = db.session.scalar(select(func.count(Note.id)).where(and_(Note.flow=='in',Note.reg=='ctr',Note.state==1)))
     #asr_files = len(files_path("/team-folders/Data/Mail/Mail asr/Inbox"))
-    IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
-    IN_files = len(files_path("/team-folders/Data/Mail/IN")) - 1
+    #IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
+    #IN_files = len(files_path("/team-folders/Data/Mail/IN")) - 1
 
-    if IN_db != IN_files:
-        flash(f"The number of files in the database is not the same as in Mail/IN ({IN_db}/{IN_files})")
+    #if IN_db != IN_files:
+    #    flash(f"The number of files in the database is not the same as in Mail/IN ({IN_db}/{IN_files})")
 
     #flash(f'There are {IN_files} in Mail/IN, {ctr_notes} waiting from ctrs and {asr_files} in Inbox asr')
 
