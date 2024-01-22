@@ -93,7 +93,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
 
     done: Mapped[bool] = mapped_column(db.Boolean, default=False)
     state: Mapped[int] = mapped_column(db.Integer, default = 0)
-    received_by: Mapped[str] = mapped_column(db.String(150), default = '')
+    received_by: Mapped[str] = mapped_column(db.String(150), default = '', nullable=True)
     read_by: Mapped[str] = mapped_column(db.String(150), default = '')
 
     files: Mapped[list["File"]] = relationship(back_populates="note")

@@ -41,6 +41,9 @@ def wrap_error(func, *args):
 def files_path(path:str):
     return wrap_error(_files_path,path)
 
+def delete_path(path:str):
+    return wrap_error(_delete_path,path)
+
 def rename_path(path:str,new_name:str):
     return wrap_error(_rename_path,new_name,path)
 
@@ -80,6 +83,9 @@ def _files_path(synd,path):
             teams.append({'name':team,'display_path':f"/team-folders/{team}","id":id_team,'type':'dir','permanent_link':''})
         return  teams
     return synd.list_folder(path)['data']['items']
+
+def _delete_path(synd,path):
+    return synd.delete_path(path)
 
 def _rename_path(synd,new_name,path):
     return synd.rename_path(new_name,path)

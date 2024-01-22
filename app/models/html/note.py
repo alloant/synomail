@@ -93,12 +93,15 @@ class NoteHtml(object):
                     text = "Mark as undone"
                     color = "green"
                 else:
-                    icon = "bi-clock-history"
+                    icon = "bi-exclamation-octagon-fill"
                     action = "state"
                     text = "Mark as done"
                     color = "red"
             else:
-                color = "gray"
+                if self.is_done(rg[2]):
+                    color = "gray"
+                else:
+                    color = "red"
                 icon = "bi-envelope-fill"
                 text = "Mark as read"
                 action = "read"

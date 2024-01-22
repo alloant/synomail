@@ -102,7 +102,18 @@ class NoteProp(object):
             (cls.sender_id.in_(session['cr']),'out'),
             else_='in'
         )
-   
+    
+    @hybrid_method
+    def is_done(self,user): #Use in state_cl and updateState for cl. We assume note is in for the ctr
+        if user in self.received_by.split(','):
+            return True
+        else:
+            return False
+
+    @is_done.expression
+    def is_done(cls,alias):
+        return not_(cls.received_by.regexp_match(fr'\b{alias}\b'))
+
     @property
     def note_folder(self):
         folder = self.fullkey.split("/")[0]
@@ -136,12 +147,7 @@ class NoteProp(object):
         else:
             return user.alias in self.read_by.split(",")
 
-    def is_done(self,user): #Use in state_cl and updateState for cl. We assume note is in for the ctr
-        if user in self.received_by.split(','):
-            return True
-        else:
-            return False
-
+    
     def is_involve(self,user):
         return user in self.receiver
 
@@ -178,7 +184,9 @@ class NoteProp(object):
         elif rg[0] == 'cl':
             if self.flow == 'out': # Note from cr to the ctr
                 if self.is_done(rg[2]):
-                    self.received_by = self.received_by.split(",").remove(rg[2])
+                    rst = self.received_by.split(",").remove(rg[2])
+                    if not rst: rst = ""
+                    self.received_by = rst
                 else:
                     self.received_by += f",{rg[2]}"
             else:
@@ -186,7 +194,7 @@ class NoteProp(object):
                     self.state = 1
                 elif self.state == 1: # taking it back before the scr archive it
                     self.state =0
-        elif rg[0] == 'cr': # Here the states could be 4-6
+        elif rg[0] in ['cr','pen']: # Here the states could be 4-6
             if self.flow == 'in': # Notes from cg,asr,r,ctr. They could be 5 or 6
                 self.state = 6 if self.state == 5 else 5
             else: # Is out. Only to pass from 0 to 1

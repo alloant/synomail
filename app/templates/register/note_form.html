@@ -60,7 +60,7 @@
       </div>
       
       <div class="p-2">
-        {% if ('cr' in user.groups and (note.flow == 'in' or note.reg in ['r','ctr'])) or 'admin' in user.groups %}
+        {% if ('despacho' in user.groups and (note.flow == 'in' or note.reg in ['r','ctr'])) or user.admin %}
           <h3 class="mb-4">Receiver</h3>
           <input class="form-control mb-2" id="recInput" type="text" placeholder="Search..">
           

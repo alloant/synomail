@@ -8,16 +8,26 @@ from datetime import date
 from flask import render_template, flash
 from flask_login import current_user
 
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, delete
 from sqlalchemy.orm import aliased
 
 from app import db
 from app.models import Note, File, User
-from app.models.nas.nas import files_path, move_path
+from app.models.nas.nas import files_path, move_path, delete_path
 from app.syneml import read_eml
 
 def inbox_view(output,args):
-    if "importeml" in output:
+    do_check = False
+    rm_file = args.get('remove_file')
+
+    if rm_file:
+        do_check = True
+        file = db.session.scalar(select(File).where(File.id==rm_file))
+        rst = delete_path(file.path)
+        if rst:
+            db.session.execute(delete(File).where(File.id==rm_file))
+    elif "importeml" in output:
+        do_check = True
         # Searching for eml to import
         path = f"{current_user.local_path}/Inbox"
         files = os.listdir(path)
@@ -62,6 +72,7 @@ def inbox_view(output,args):
         db.session.commit()
 
     elif "notesfromfiles" in output:
+        do_check = True
         files = db.session.scalars(select(File).where(File.note_id==None))
         involved_notes = []
         for file in files:
@@ -136,13 +147,14 @@ def inbox_view(output,args):
     next_url = url_for('register.inbox_scr', page=files.next_num) if files.has_next else None
 
     # Some indicators to help
-    #ctr_notes = db.session.scalar(select(func.count(Note.id)).where(and_(Note.flow=='in',Note.reg=='ctr',Note.state==1)))
-    #asr_files = len(files_path("/team-folders/Data/Mail/Mail asr/Inbox"))
-    #IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
-    #IN_files = len(files_path("/team-folders/Data/Mail/IN")) - 1
+    if do_check:
+        #ctr_notes = db.session.scalar(select(func.count(Note.id)).where(and_(Note.flow=='in',Note.reg=='ctr',Note.state==1)))
+        #asr_files = len(files_path("/team-folders/Data/Mail/Mail asr/Inbox"))
+        IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
+        IN_files = len(files_path("/team-folders/Data/Mail/IN")) - 1
 
-    #if IN_db != IN_files:
-    #    flash(f"The number of files in the database is not the same as in Mail/IN ({IN_db}/{IN_files})")
+        if IN_db != IN_files:
+            flash(f"The number of files in the database is not the same as in Mail/IN ({IN_db}/{IN_files})")
 
     #flash(f'There are {IN_files} in Mail/IN, {ctr_notes} waiting from ctrs and {asr_files} in Inbox asr')
 

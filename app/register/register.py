@@ -64,6 +64,8 @@ def register_filter(rg,h_note = None):
         if rg[1] == 'in': # show notes to the ctr. Flow==out for database
             fn.append(Note.receiver.any(User.alias==rg[2]))
             fn.append(Note.state>=5)
+            if not session['showAll']:
+                fn.append(Note.is_done(rg[2]))
         else:
             fn.append(Note.sender.has(User.alias==rg[2]))
     elif rg[0] == 'min':
@@ -216,7 +218,7 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     sql = select(Note).join(Note.sender.of_type(sender))
     sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
 
-    notes = db.paginate(sql, per_page=30)
+    notes = db.paginate(sql, per_page=22)
     
     prev_url = url_for('register.register', reg=reg, page=notes.prev_num) if notes.has_prev else None
     next_url = url_for('register.register', reg=reg, page=notes.next_num) if notes.has_next else None
