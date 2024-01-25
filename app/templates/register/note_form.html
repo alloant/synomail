@@ -62,28 +62,47 @@
       <div class="p-2">
         {% if ('despacho' in user.groups and (note.flow == 'in' or note.reg in ['r','ctr'])) or user.admin %}
           <h3 class="mb-4">Receiver</h3>
-          <input class="form-control mb-2" id="recInput" type="text" placeholder="Search..">
           
+          <div class="d-flex d-flex-wrap">
+            <input type="button" class="btn btn-primary mb-2 mr-2" id="selectall" name="selectall" autocomplete="off" checked onclick="eventCheckBox()" value="All">
+            <input class="form-control mb-2" id="recInput" type="text" placeholder="Search..">
+          </div>
+
           <div class="">
             <ul class="list-group" id="recList">
             {% for rec in form.receiver %}
               {% if rec.checked %} 
                 <li class="list-group-item p-1">
-                  {{ rec(class="form-check-input") }}
-                  {{ rec.label(class="form-check-label") }}
+                  {{ rec(class="form-check-input chbox") }}
+                  {{ rec.label(class="form-check-label chbox_label") }}
                 </li>
               {% endif %}
             {% endfor %}
             {% for rec in form.receiver %}
               {% if not rec.checked %} 
                 <li class="list-group-item p-1">
-                  {{ rec(class="form-check-input") }}
-                  {{ rec.label(class="form-check-label") }}
+                  {{ rec(class="form-check-input chbox") }}
+                  {{ rec.label(class="form-check-label chbox_label") }}
                 </li>
               {% endif %}
             {% endfor %}
             </ul>
           </div>
+          
+          <script>
+            function eventCheckBox() {
+              let valueFilter = document.getElementById("recInput");
+              let value = valueFilter.value.toLowerCase();
+              let checkboxs = document.getElementsByClassName("chbox");
+              let labels = document.getElementsByClassName("chbox_label");
+
+              for(let i = 0; i < checkboxs.length ; i++) {
+                if (labels[i].textContent.toLowerCase().includes(value)) {
+                  checkboxs[i].checked = !checkboxs[i].checked;
+                }
+              } 
+            }
+          </script>
 
           <script>
           $(document).ready(function(){
