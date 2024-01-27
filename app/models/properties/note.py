@@ -8,13 +8,13 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from app import db
 
 class NoteProp(object):
-    @hybrid_property
-    def date(self):
-        return self.n_date
+    #@hybrid_property
+    #def date(self):
+    #    return self.n_date
 
-    @date.expression
-    def date(cls):
-        return cls.n_date
+    #@date.expression
+    #def date(cls):
+    #    return cls.n_date
 
     @property
     def groups(self):

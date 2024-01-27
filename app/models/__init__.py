@@ -5,8 +5,8 @@ from datetime import datetime
 
 from flask_login import UserMixin
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship, aliased
-from sqlalchemy import select, delete
+from sqlalchemy.orm import Mapped, mapped_column, relationship, aliased, column_property
+from sqlalchemy import select, delete, func, case, union
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
@@ -16,11 +16,12 @@ from .nas.file import FileNas
 
 from .properties.note import NoteProp
 from .html.note import NoteHtml
+from .html.file import FileHtml
 from .nas.note import NoteNas
 
 from .properties.user import UserProp
 
-class File(FileProp,FileNas,db.Model):
+class File(FileProp,FileNas,FileHtml,db.Model):
     __tablename__ = 'file'
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
@@ -97,6 +98,14 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     read_by: Mapped[str] = mapped_column(db.String(150), default = '')
 
     files: Mapped[list["File"]] = relationship(back_populates="note")
+    
+
+    files_date = column_property(
+        select(func.max(File.date)).
+        where(File.note_id==id).
+        correlate_except(File).
+        scalar_subquery()
+    )
 
     def __init__(self, *args, **kwargs):
         super(Note,self).__init__(*args, **kwargs)
@@ -141,7 +150,22 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         alsend = db.session.scalar(select(User.alias).where(User.id==cls.sender_id))
         return alsend
         return select(User.alias).where(User.id==cls.sender_id)
-    
+   
+    @hybrid_property
+    def date(self):
+        rst = self.n_date
+        for file in self.files:
+            if rst < file.date:
+                rst = file.date
+        return rst
+
+    @date.expression
+    def date(cls): 
+        return case(
+            (cls.n_date < cls.files_date, cls.files_date),
+            else_=cls.n_date
+        )
+
 class User(UserProp,UserMixin, db.Model):
     __tablename__ = 'user'
 

@@ -45,7 +45,7 @@
     {% endif%} 
 
     {% for file in note.files %}
-      {{ file.icon_html|safe }}
+      {% include 'register/table_row_files.html' %}
     {% endfor %}
   </td>
 
