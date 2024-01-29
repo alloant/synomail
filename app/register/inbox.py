@@ -20,7 +20,8 @@ def inbox_view(output,args):
     do_check = False
     rm_file = args.get('remove_file')
 
-    #from app.tools import find_files
+    #from app.tools import find_files, import_dates
+    #import_dates()
     #find_files()
 
     if rm_file:

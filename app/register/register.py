@@ -216,7 +216,11 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     page = args.get('page', 1, type=int)
     sender = aliased(User,name="sender_user")
     sql = select(Note).join(Note.sender.of_type(sender))
-    sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
+    
+    if rg[1] == 'out':
+        sql = sql.where(and_(*fn)).order_by(Note.num.desc())
+    else:
+        sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
 
     notes = db.paginate(sql, per_page=22)
     

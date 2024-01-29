@@ -6,6 +6,19 @@ from app import db
 from app.models import File, Note
 from app.models.nas.nas import files_path, copy_path
 
+def import_dates():
+    import csv
+    with open('out2023_final.csv') as csvfile:
+        spamreader = csv.reader(csvfile)
+        for row in spamreader:
+            if not row[0].isdigit(): continue
+            nt = db.session.scalar(select(Note).where(Note.id==int(row[0])))
+            if nt:
+                print(nt.id,nt.n_date,row[4])
+                nt.n_date = row[4]
+        db.session.commit()
+
+
 def change_file_dates():
     files = db.session.scalars(select(File)).all()
     for file in files:
@@ -25,6 +38,7 @@ def find_files():
     only_update = False
 
     for reg in regs:
+        break
         files_cg = files_path(f"/team-folders/Archive/{reg} {flow} {year}")
         
         for note in notes:
