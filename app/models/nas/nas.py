@@ -31,7 +31,7 @@ def wrap_error(func, *args):
             message = f"Synology error: {err.message} in {func.__name__} with parameters {args}"
         else:
             message = f"{err} in {func.__name__} with parameters {args}"
-         
+       
         flash(message)
         logging.warning(message)
 
@@ -124,10 +124,9 @@ def _move_path(synd,path,new_path):
 
 def _copy_path(synd,path,dest):
     rst = synd.copy(path,dest)
-    if 'data' in rst:
-        if 'async_task_id'in rst['data']:
-            print(f"{path}/{dest}")
-            rst = synd.get_file_or_folder_info(dest)
+    #if 'data' in rst:
+    #    if 'async_task_id'in rst['data']:
+    #        rst = synd.get_file_or_folder_info(dest)
 
     return rst
 
@@ -185,6 +184,7 @@ def _upload_path(synd,file,dest):
 def _create_folder(synd,path,folder):
     print('Starting folder',path)
     files = files_path(path)
+    
     folder_exists = False
     for fl in files:
         if fl['name'] == folder:

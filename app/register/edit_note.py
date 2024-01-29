@@ -12,6 +12,14 @@ from app.models import Note, User
 from app.forms.note import NoteForm
 
 
+def delete_note_view(request):
+    note_id = request.args.get('note')
+    note = db.session.scalar(select(Note).where(Note.id==note_id))
+    db.session.delete(note)
+    db.session.commit()
+    
+    return redirect(session['lasturl'])
+
 def edit_note_view(request):
     page = request.args.get('page',1,type=int)
     

@@ -23,3 +23,12 @@
     </tbody>
   </table>
 </div>
+
+<script>
+  function myFunction(note_protocol,note_id) {
+    let answer = confirm(`Are you sure you want to delete ${note_protocol}?`);
+    if (answer) {
+      location.replace(`/delete_note?note=${note_id}`)
+    }
+  }
+</script>

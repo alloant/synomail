@@ -41,17 +41,10 @@ class NoteNas(object):
                 return ''
 
     def getPermanentLink(self): # Gets the link and creates the folder if needed
-        rst = get_info(self.path_note)
-        link = None
-        if not rst:
-            rst = create_folder(self.path,self.note_folder)
-            if rst:
-                link = rst['permanent_link']
-        elif 'data' in rst:
-            link = rst['data']['permanent_link']
+        rst = create_folder(self.path,self.note_folder)
 
-        if link:
-            self.permanent_link = link
+        if rst:
+            self.permanent_link = rst['permanent_link']
             db.session.commit()
             return True
         else:
@@ -141,16 +134,19 @@ class NoteNas(object):
             rst = True
         
         if not rst:
+            flash("Could not update files. Try again")
             return False
 
         files = files_path(self.path_note)
-
+        
         # Just checking the files that are already assigned to the note and fixing the path of the file in the case it has not been yet 
         ntfiles = []
         for file in self.files:
             if "/" in file.path:
-                file.move_to_note(self.path_note)
-            ntfiles.append(file.path)
+                print(file.path,note.path)
+                if note.path != "/".join(file.path.split("/")[:-1]):
+                    file.move_to_note(self.path_note)
+            ntfiles.append(file.path.split("/")[-1])
         
         if files:
             extfiles = []

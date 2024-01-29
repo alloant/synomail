@@ -5,7 +5,7 @@ import re
 
 from datetime import date
 
-from flask import render_template, flash
+from flask import render_template, flash, url_for
 from flask_login import current_user
 
 from sqlalchemy import select, and_, func, delete
@@ -19,6 +19,9 @@ from app.syneml import read_eml
 def inbox_view(output,args):
     do_check = False
     rm_file = args.get('remove_file')
+
+    #from app.tools import find_files
+    #find_files()
 
     if rm_file:
         do_check = True
