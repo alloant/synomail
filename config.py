@@ -3,6 +3,7 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
+    SYNOLOGY_FOLDER_NOTES= os.environ.get('SYNOLOGY_FOLDER_NOTES')
     EMAIL_ADDRESS= os.environ.get('EMAIL_ADDRESS')
     EMAIL_SECRET= os.environ.get('EMAIL_SECRET')
     SECRET_KEY = os.environ.get('SECRET_KEY')

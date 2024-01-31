@@ -5,7 +5,7 @@ import re
 
 from datetime import date
 
-from flask import render_template, flash, url_for
+from flask import render_template, flash, url_for, current_app
 from flask_login import current_user
 
 from sqlalchemy import select, and_, func, delete
@@ -40,17 +40,17 @@ def inbox_view(output,args):
                 read_eml(f"{path}/{file}")
         
         # Searching for notes in from asr
-        asr_files = files_path("/team-folders/Data/Mail/Mail asr/Inbox")
+        asr_files = files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Inbox")
         if asr_files:
             for file in asr_files:
-                rst = move_path(file['display_path'],"/team-folders/Data/Mail/IN")
+                rst = move_path(file['display_path'],"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
                 if rst:
                     filename = file['display_path'].split("/")[-1]
-                    path = f"/team-folders/Data/Mail/IN/{filename}"
+                    path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN/{filename}"
                     link = file['permanent_link']
                     if filename.split(".")[-1] in ['xls','xlsx','docx','rtf']:
-                        path,fid,link = convert_office(f"/team-folders/Data/Mail/IN/{filename}")
-                        move_path(f"/team-folders/Data/Mail/IN/{filename}",f"/team-folders/Data/Mail/IN/Originals")
+                        path,fid,link = convert_office(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN/{filename}")
+                        move_path(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN/{filename}",f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN/Originals")
                     
                     rnt = db.session.scalar(select(File).where(and_(File.path.contains(filename),File.sender=='asr')))
                     exists = False
@@ -69,7 +69,7 @@ def inbox_view(output,args):
         sender = aliased(User,name="sender_user")
         notes = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(and_(Note.reg=='ctr',Note.flow=='in',Note.state==1)))
         for note in notes:
-            rst = note.move(f"/team-folders/Data/Notes/{note.year}/ctr in/")
+            rst = note.move(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{note.year}/ctr in/")
             if rst:
                 note.state = 3
 
@@ -153,9 +153,14 @@ def inbox_view(output,args):
     # Some indicators to help
     if do_check:
         #ctr_notes = db.session.scalar(select(func.count(Note.id)).where(and_(Note.flow=='in',Note.reg=='ctr',Note.state==1)))
-        #asr_files = len(files_path("/team-folders/Data/Mail/Mail asr/Inbox"))
+        #asr_files = len(files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Inbox"))
         IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
-        IN_files = len(files_path("/team-folders/Data/Mail/IN")) - 1
+        check_files = files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
+        
+        if check_files:
+            IN_files = len(check_files) - 1
+        else:
+            IN_files = 0
 
         if IN_db != IN_files:
             flash(f"The number of files in the database is not the same as in Mail/IN ({IN_db}/{IN_files})")

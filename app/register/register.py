@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import re
 
-from flask import render_template, url_for, session, redirect
+from flask import render_template, url_for, session, redirect, current_app
 from flask_login import current_user
 
 from sqlalchemy import select, and_, or_, literal_column
@@ -109,14 +109,14 @@ def register_actions(output,args): # Actions like new note, update read/state, u
     if read_id:
         nt = db.session.scalar(select(Note).where(Note.id==read_id))
         nt.updateRead(current_user)
-        return "read"
+        return "lasturl"
 
     # If the state of the note has change
     state_id = args.get('state')
     if state_id:
         nt = db.session.scalar(select(Note).where(Note.id==state_id))
         nt.updateState(reg,current_user)
-        return "read"
+        return "lasturl"
   
     if "newout" in output:
         newNote(current_user,reg)
@@ -127,7 +127,7 @@ def register_actions(output,args): # Actions like new note, update read/state, u
         tosendnotes = db.session.scalars(select(Note).where(Note.flow=='out',Note.state==1))
         
         for nt in tosendnotes:
-            rst = nt.move(f'/team-folders/Data/Notes/{nt.year}/{nt.reg} out')
+            rst = nt.move(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{nt.year}/{nt.reg} out")
             
             if not rst:
                 continue
@@ -139,7 +139,7 @@ def register_actions(output,args): # Actions like new note, update read/state, u
                 nt.state = 6
 
             if nt.reg == 'asr': # Note for asr. We just copy it to the right folder
-                nt.copy('/team-folders/Data/Mail/Mail asr/Outbox')
+                nt.copy("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Outbox")
                 nt.state = 6
             
             if nt.reg == 'ctr': # note for a ctr. We just change the state
@@ -200,7 +200,11 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
             return redirect(url_for('register.register', reg=gp.replace("_","_in_"), page=1))
     
     # Actions
-    register_actions(output,args)
+    rst = register_actions(output,args)
+
+    if rst == "lasturl":
+        return redirect(session['lasturl'])
+
 
     # First check the filter
     if "notes_filter" in output: 
@@ -219,8 +223,8 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     sender = aliased(User,name="sender_user")
     sql = select(Note).join(Note.sender.of_type(sender))
     
-    if rg[1] == 'out':
-        sql = sql.where(and_(*fn)).order_by(Note.num.desc())
+    if rg[0] == "cr" and rg[1] == "out":
+        sql = sql.where(and_(*fn)).order_by(Note.year.desc(),Note.num.desc())
     else:
         sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
 

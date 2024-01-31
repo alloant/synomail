@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app import db
 from .forms.login import LoginForm, RegistrationForm, UserForm
 from .models import User
+from app.tools import check_folders_synology
 
 bp = Blueprint('auth', __name__)
 
@@ -25,6 +26,7 @@ def login():
             return render_template('auth/auth.html',login=True, form=form)
 
         login_user(user)
+        check_folders_synology()
 
         if 'cr' in user.groups:
             return redirect(url_for('register.register',reg='pen_in_'))

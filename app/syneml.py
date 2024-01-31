@@ -3,7 +3,7 @@ import io
 import base64
 from datetime import date
 
-from flask import flash
+from flask import flash, current_app
 
 from sqlalchemy import select, and_
 
@@ -60,7 +60,7 @@ def read_eml(file_eml,emails = None):
     subject = parsed_eml['header']['subject']
     date = parsed_eml['header']['date']
     
-    dest = "/team-folders/Data/Mail/IN"
+    dest = "{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN"
 
     if 'attachment' in parsed_eml:
         attachments = parsed_eml['attachment']

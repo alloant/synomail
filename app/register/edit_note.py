@@ -60,11 +60,11 @@ def edit_note_view(request):
         
 
         current_refs = []
-        if ref.data != "":
+        if form.ref.data != "":
             for ref in form.ref.data.split(","):
                 nt = get_ref(ref)
                 if nt:
-                    if nt.reg == 'ctr' of 'cr' in current_user.groups:
+                    if nt.reg == 'ctr' or 'cr' in current_user.groups:
                         current_refs.append(nt.fullkey)
                         note.ref.append(nt)
                     else:

@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from flask import current_app
+from flask_login import current_user
+
 from sqlalchemy import select 
 from app import db
 from app.models import File, Note
-from app.models.nas.nas import files_path, copy_path
+from app.models.nas.nas import files_path, copy_path, create_folder
+
+def check_folders_synology():
+    create_folder(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/",current_user.alias)
+    create_folder(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{current_user.alias}","Notes")
+
 
 def import_dates():
     import csv
@@ -52,9 +60,9 @@ def find_files():
                             if not files_temp:
                                 continue
                             for tfile in files_temp:
-                                copy_path(f"/team-folders/Archive{tfile['path']}",f'/team-folders/Data/Notes/{year}/{reg} {flow}/{note.note_folder}/{tfile["path"].split("/")[-1]}')
+                                copy_path(f"/team-folders/Archive{tfile['path']}",f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{year}/{reg} {flow}/{note.note_folder}/{tfile['path'].split('/')[-1]}")
                         else:
-                            copy_path(f"/team-folders/Archive{file['path']}",f'/team-folders/Data/Notes/{year}/{reg} {flow}/{note.note_folder}/{file["path"].split("/")[-1]}')
+                            copy_path(f"/team-folders/Archive{file['path']}",f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{year}/{reg} {flow}/{note.note_folder}/{file['path'].split('/')[-1]}")
             
                 note.updateFiles()
 

@@ -4,10 +4,11 @@
 from datetime import datetime
 import re
 
+from flask import current_app
 from flask_login import UserMixin
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship, aliased, column_property
-from sqlalchemy import select, delete, func, case, union
+from sqlalchemy import select, delete, func, case, union, and_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from app import db
@@ -161,11 +162,11 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         
         folder = self.sender.alias
         if self.sender.alias in ['cg','asr'] or 'r' in self.sender.groups:
-            self.path = f"/team-folders/Data/Notes/{self.year}/{self.reg} in"
+            self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{self.year}/{self.reg} in"
         elif self.reg == 'min':
-            self.path = f"/team-folders/Data/Minutas/{folder}/Minutas/{datetime.now().year}"
+            self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{folder}/Minutas/{datetime.now().year}"
         else:
-            self.path = f"/team-folders/Data/Minutas/{folder}/Notes"
+            self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{folder}/Notes"
 
         rst = self.create_folder()
 
@@ -188,6 +189,15 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     def addFileArgs(self,*args,**kargs):
         self.addFile(File(**kargs))
 
+    def is_involve(self,user,reg):
+        rg = reg.split("_")
+        if rg[0] == 'cl' and len(rg) == 3:
+            check = db.session.scalar(select(User).where(User.alias==rg[2]))
+        else:
+            check = user
+        
+        return check in self.receiver
+
     @hybrid_property
     def alias_sender(self):
         return self.sender.alias
@@ -209,7 +219,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     @date.expression
     def date(cls): 
         return case(
-            (cls.n_date < cls.files_date, cls.files_date),
+            (and_(cls.n_date < cls.files_date,cls.files_date.isnot(None)), cls.files_date),
             else_=cls.n_date
         )
 

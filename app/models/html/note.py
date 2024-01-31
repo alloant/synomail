@@ -94,7 +94,7 @@ class NoteHtml(object):
                     text = "Mark as undone"
                     color = "green"
                 else:
-                    icon = "bi-exclamation-octagon-fill"
+                    icon = "bi-x-circle"
                     action = "state"
                     text = "Mark as done"
                     color = "red"
@@ -167,7 +167,7 @@ class NoteHtml(object):
     
     def state_cr_html(self,reg,user):         
         if self.flow == 'in': # Notes from cg,asr,r and ctr. They could be read/unread and done/undone
-            fill = "-fill" if self.is_involve(user) else ""
+            fill = "-fill" if self.is_involve(user,reg) else ""
             action = ""
             text = ""
             if self.is_read(user): # The note has been read   

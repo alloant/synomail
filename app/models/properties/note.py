@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import flash, session
+from flask import flash, session, current_app
 
 from sqlalchemy import case, and_, or_, not_, select, type_coerce, literal_column, func, union
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
@@ -131,10 +131,10 @@ class NoteProp(object):
 
         if self.reg == 'min':
             return f"{self.path}/{self.year}/{self.note_folder}"
-            return f"/team-folders/Data/Minutas/{self.sender.alias}/Minutas/{self.year}/{self.note_folder}"
+            return f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{self.sender.alias}/Minutas/{self.year}/{self.note_folder}"
         else:
             return f"{self.path}/{self.year}/{self.note_folder}"
-            return f"/team-folders/Data/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
+            return f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{self.year}/{self.reg} {self.flow}/{self.note_folder}"
     
 
     def is_read(self,user):
@@ -147,9 +147,6 @@ class NoteProp(object):
         else:
             return user.alias in self.read_by.split(",")
 
-    
-    def is_involve(self,user):
-        return user in self.receiver
 
     def rel_flow(self,reg):
         rg = reg.split('_')
