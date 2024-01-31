@@ -1,22 +1,23 @@
 from xml.etree import ElementTree as ET
 
 class NoteHtml(object): 
-    @property
-    def refs_html(self):
+    def refs_html(self,reg):
+        rg = reg.split("_")
         html = []
         for ref in self.ref:
-            html.append(f'<a href"#" data-bs-toggle="tooltip" data-bs-original-title="{ref.content}">{ref.fullkey}</a>')
+            if rg[0] == 'cl' and ref.reg == 'ctr' or rg[0] in ['cr','pen','des']:
+                html.append(f'<a href"#" data-bs-toggle="tooltip" data-bs-original-title="{ref.content}">{ref.fullkey}</a>')
 
         return ','.join(html)
 
     def fullkey_link_html(self,reg):
         rg = reg.split("_")
-        nreg = 'cr' if rg[0] == 'min' else rg[0]
+        nreg = 'cr' if rg[0] in ['min','pen','des'] else rg[0]
         a = ET.Element('a',attrib={'href':f'?reg={nreg}_all_{rg[2]}&h_note={self.id}','target':'_blank','data-bs-toggle':'tooltip','title':self.receivers})
         a.text = f"{self.keyto(True,True)}/{self.year-2000}"
 
         if self.permanent:
-            i = ET.Element('i',attrib={'class':'bi bi-asterisk','style':'color: red;'})
+            i = ET.Element('i',attrib={'class':'bi bi-house-lock-fill','style':'color: red;'})
             a.append(i)
         
 

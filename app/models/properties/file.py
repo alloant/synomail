@@ -87,35 +87,3 @@ class FileProp(object):
                     return temp[1]
 
         return ""
-    
-    @property
-    def guess_ref(self):
-        ids = []
-        if ";" in self.subject:
-            temp = self.subject.split(";")
-            if len(temp) < 3:
-                return ""
-
-            if "/" in temp[0]:
-                num = re.findall(r'\d+',temp[0])
-                if len(num) > 1:
-                    refs = temp[2]
-                    for ref in refs.split(","):
-                        rf = ref.replace(" ","")
-                        n = re.findall(r'\d+',rf)
-                        r = re.findall(r'\D+',rf)
-                        tid = None
-                        
-                        if len(r) == 1: # only / is there, it is from cg
-                            tid = self.get_note_id(f"cg {n[0]}/{n[1]}")
-                        else:
-                            sd = r[0].split("-")[0]
-                            rst = self.get_user('alias',sd)
-                            if rst:
-                                tid = self.get_note_id(f"{sd} {n[0]}/{n[1]}")
-                        
-                        if tid:
-                            ids.append(tid)
-
-        return ids
-

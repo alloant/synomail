@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+import re
 
 from flask_login import UserMixin
 
@@ -20,6 +21,43 @@ from .html.file import FileHtml
 from .nas.note import NoteNas
 
 from .properties.user import UserProp
+
+def get_note_fk(fullkey):
+    sender = aliased(User,name="sender_user")
+    nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==fullkey))
+    return nt if nt else None
+
+def get_ref(ref):
+    rst = re.compile(r'h104\D+|\D+').findall(ref)
+    nums = re.compile(r'\d+').findall(ref)
+
+    if not nums or not rst:
+        return None
+    
+    fk = None
+    if rst == ['/'] or rst[0].replace(' ','') in ['','cg']: # Note in from cg
+        if len(nums) == 2:
+            fk = f"cg {nums[0]}/{nums[1]}"
+    elif len(rst) == 2 and len(nums) == 2:
+        if rst[1] == '/': # Otherwise there is not rf
+            if rst[0][:2] == 'cr' or rst[0][:3] == 'Aes': # Is note out
+                if int(nums[0]) < 250: # Note to cg
+                    fk = f"Aes {nums[0]}/{nums[1]}"
+                elif int(nums[0]) < 1000: # Note to asr
+                    fk = f"cr-asr {nums[0]}/{nums[1]}"
+                elif int(nums[0]) < 2000: # Note to ctr
+                    fk = f"cr {nums[0]}/{nums[1]}"
+                else: # Note to cg
+                    fk = f"Aes-r {nums[0]}/{nums[1]}"
+            else: # is note in
+                user = db.session.scalar(select(User).where(User.alias==rst[0].split('-')[0]))
+                if user:
+                    fk = f"{user.alias} {nums[0]}/{nums[1]}"
+    
+    if fk:
+        return get_note_fk(fk)
+    else:
+        return None
 
 class File(FileProp,FileNas,FileHtml,db.Model):
     __tablename__ = 'file'
@@ -49,12 +87,22 @@ class File(FileProp,FileNas,FileHtml,db.Model):
         else:
             return None
 
-    def get_note_id(self,fullkey):
-        print(fullkey,'!!!!!!!!!!!!')
-        sender = aliased(User,name="sender_user")
-        nt = db.session.scalar(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==fullkey))
-        print(nt,'$$$$$$$$$$$$$$')
-        return nt.fullkey,nt.id if nt else None
+    @property
+    def guess_ref(self):
+        ids = []
+        if ";" in self.subject:
+            subject = self.subject.split(";")
+            if len(subject) < 3:
+                return ""
+            
+            for ref in subject[2].split(","):
+                tid = get_ref(ref)
+                if tid: ids.append([tid.fullkey,tid.id])
+
+        return ids
+
+
+
 
 note_ref = db.Table('note_ref',
                 db.Column('note_id', db.Integer, db.ForeignKey('note.id')),
@@ -138,7 +186,6 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         db.session.execute(delete(File).where(File.id.in_(files_id)))
 
     def addFileArgs(self,*args,**kargs):
-        print('HERERER')
         self.addFile(File(**kargs))
 
     @hybrid_property

@@ -33,7 +33,6 @@ def find_history(note):
         nids += nid
 
     nids = list(set(nids))
-    print(nids)
 
     return Note.id.in_(nids)
 
@@ -61,7 +60,10 @@ def register_filter(rg,h_note = None):
             fn.append(or_(Note.sender.has(User.id==current_user.id),Note.receiver.any(User.id==current_user.id)))
     elif rg[0] == 'cl': # The register of a center
         fn.append(Note.reg!='min') # No minutas
-        if rg[1] == 'in': # show notes to the ctr. Flow==out for database
+        if rg[1] == 'all':
+            fn.append(and_(Note.reg!='min',or_( and_(Note.state>=5,Note.receiver.any(User.alias==rg[2])) , Note.sender.has(User.alias==rg[2]) ) )) # Only notes after desacho or already sent unless I am the sender
+            fn.append(find_history(h_note)) 
+        elif rg[1] == 'in': # show notes to the ctr. Flow==out for database
             fn.append(Note.receiver.any(User.alias==rg[2]))
             fn.append(Note.state>=5)
             if not session['showAll']:

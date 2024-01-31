@@ -41,11 +41,10 @@ def login():
 @bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     form = RegistrationForm(request.form)
-    print(form,form.validate())
     if request.method == 'POST' and form.validate():
         user = db.session.scalar(select(User).where(User.alias==form.alias.data))
         cipher = Fernet(current_app.config['SECRET_KEY'])
-        print(user) 
+        
         if user:
             if user.password != '':  
                 flash('Name user already exists')

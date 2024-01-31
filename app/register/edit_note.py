@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from app import db
-from app.models import Note, User
+from app.models import Note, User, get_ref
 from app.forms.note import NoteForm
 
 
@@ -59,15 +59,25 @@ def edit_note_view(request):
                 note.receiver.append(rec)
         
 
-        for ref in form.ref.data.split(","):
-            if form.ref.data == "": break
-            sender = aliased(User,name="sender_user")
-            nr = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.fullkey==ref.strip())).first()
-            if nr:
-                note.ref.append(nr)
-            else:
-                flash(f"Note {ref} doesn't exist")
-                error = True
+        current_refs = []
+        if ref.data != "":
+            for ref in form.ref.data.split(","):
+                nt = get_ref(ref)
+                if nt:
+                    if nt.reg == 'ctr' of 'cr' in current_user.groups:
+                        current_refs.append(nt.fullkey)
+                        note.ref.append(nt)
+                    else:
+                        flash(f"Note {ref} cannot be add")
+                        error = True
+                else:
+                    flash(f"Note {ref} doesn't exist")
+                    error = True
+
+        # Now I remove the notes not in current
+        for ref in reversed(note.ref):
+            if not ref.fullkey in current_refs:
+                note.ref.remove(ref)
         
         db.session.commit()
         
