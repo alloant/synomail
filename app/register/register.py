@@ -228,13 +228,19 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     else:
         sql = sql.where(and_(*fn)).order_by(Note.date.desc(), Note.num.desc())
 
+    ctr = None
+    if rg[0] == 'cl':
+        ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
+        if ctr:
+            ctr = ctr.id
+
     notes = db.paginate(sql, per_page=22)
     
     prev_url = url_for('register.register', reg=reg, page=notes.prev_num) if notes.has_prev else None
     next_url = url_for('register.register', reg=reg, page=notes.next_num) if notes.has_next else None
     
     session['lasturl'] = url_for('register.register',reg=reg,page=page)
-    return render_template('register/main.html',title=view_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user)
+    return render_template('register/main.html',title=view_title(reg,note), notes=notes, reg=reg, page=page, prev_url=prev_url, next_url=next_url, user=current_user, ctr=ctr)
 
 
 

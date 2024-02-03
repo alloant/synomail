@@ -34,4 +34,5 @@ def delete_note():
 @login_required
 def inbox_scr():
     get_cr_users()
-    return inbox_view(request.form.to_dict(),request.args)
+    
+    return inbox_view(request)

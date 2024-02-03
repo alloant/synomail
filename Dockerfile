@@ -4,6 +4,8 @@ FROM python:3.12.1-alpine3.19 AS builder
 RUN pip install --upgrade pip
 RUN apk add git
 
+EXPOSE 8000
+
 WORKDIR /app
 
 COPY requirements.txt /app

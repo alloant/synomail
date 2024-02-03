@@ -5,7 +5,7 @@ import re
 
 from datetime import date
 
-from flask import render_template, flash, url_for, current_app
+from flask import render_template, flash, url_for, current_app, request
 from flask_login import current_user
 
 from sqlalchemy import select, and_, func, delete
@@ -16,34 +16,41 @@ from app.models import Note, File, User
 from app.models.nas.nas import files_path, move_path, delete_path
 from app.syneml import read_eml
 
-def inbox_view(output,args):
+def inbox_view(request):
+    output = request.form.to_dict()
+    args = request.args
+    
     do_check = False
     rm_file = args.get('remove_file')
 
     #from app.tools import find_files, import_dates
     #import_dates()
     #find_files()
-
+    print(output)
     if rm_file:
         do_check = True
         file = db.session.scalar(select(File).where(File.id==rm_file))
         rst = delete_path(file.path)
         if rst:
             db.session.execute(delete(File).where(File.id==rm_file))
-    elif "importeml" in output:
+    elif "upload" in output:
+        uploaded_files = request.files.getlist('files')
+        for file in uploaded_files:
+            read_eml(file.read())
+    elif "getmail" in output:
         do_check = True
         # Searching for eml to import
-        path = f"{current_user.local_path}/Inbox"
-        files = os.listdir(path)
-        for file in files:
-            if file.split('.')[-1] == 'eml':
-                read_eml(f"{path}/{file}")
+        # path = f"{current_user.local_path}/Inbox"
+        # files = os.listdir(path)
+        # for file in files:
+            # if file.split('.')[-1] == 'eml':
+                # read_eml(f"{path}/{file}")
         
         # Searching for notes in from asr
-        asr_files = files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Inbox")
+        asr_files = files_path(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Inbox")
         if asr_files:
             for file in asr_files:
-                rst = move_path(file['display_path'],"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
+                rst = move_path(file['display_path'],f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
                 if rst:
                     filename = file['display_path'].split("/")[-1]
                     path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN/{filename}"
@@ -155,7 +162,7 @@ def inbox_view(output,args):
         #ctr_notes = db.session.scalar(select(func.count(Note.id)).where(and_(Note.flow=='in',Note.reg=='ctr',Note.state==1)))
         #asr_files = len(files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/Mail asr/Inbox"))
         IN_db = db.session.scalar(select(func.count(File.id)).where(File.note_id == None))
-        check_files = files_path("{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
+        check_files = files_path(f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN")
         
         if check_files:
             IN_files = len(check_files) - 1

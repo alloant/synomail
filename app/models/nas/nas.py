@@ -23,7 +23,8 @@ def wrap_error(func, *args):
         cipher = Fernet(current_app.config['SECRET_KEY'])
         #PASSWD = User.query.where(User.alias==USER).first().password_nas
         PASSWD = cipher.decrypt(current_user.password_nas)
-        with SynologyDrive(USER,PASSWD,"nas.prome.sg",dsm_version='7') as synd:
+        https = False if current_app.config['SYNOLOGY_SERVER'] == 'localhost' else True
+        with SynologyDrive(USER,PASSWD,current_app.config['SYNOLOGY_SERVER'],dsm_version='7',https=https) as synd:
             return func(synd,*args)
         return None
     except Exception as err:
@@ -211,7 +212,7 @@ def _create_folder(synd,path,folder):
 
 def send_message(rec,RECIPIENTS,message):
     try:
-        webhook = IncomingWebhook('nas.prome.sg', RECIPIENTS[rec]['token'], port=5001)
+        webhook = IncomingWebhook(current_app.config['SYNOLOGY_SERVER'], RECIPIENTS[rec]['token'], port=5001)
         webhook.send(message)
         return True
     except Exception as err:

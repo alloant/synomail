@@ -32,6 +32,13 @@
     {% else %}
       {{ note.content }}
     {% endif %}
+    {% if ctr %}
+      {% for cm in note.comments_ctr %}
+        {% if cm.sender_id == ctr%}
+          <mark>({{cm.comment}})</mark>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
   </td>
 
   <!-- Link to folder, button to updateFiles and files in folder -->

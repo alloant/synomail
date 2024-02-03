@@ -4,11 +4,11 @@
 from flask import render_template, redirect, session, flash
 from flask_login import current_user
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import aliased
 
 from app import db
-from app.models import Note, User, get_ref
+from app.models import Note, User, get_ref, Comment
 from app.forms.note import NoteForm
 
 
@@ -24,13 +24,24 @@ def edit_note_view(request):
     page = request.args.get('page',1,type=int)
     
     note_id = request.args.get('note')
+    alias_ctr = request.args.get('ctr')
+    ctr = None
+    if alias_ctr:
+        ctr = db.session.scalar(select(User).where(User.alias==alias_ctr))
+        if ctr:
+            ctr = ctr.id
+    else: # No from a ctr then the user has to be in cr
+        if not 'cr' in current_user.groups:
+            return redirect(session['lasturl'])
     #sender = aliased(User,name="sender_user")
     #note = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.id==note_id)).first()
     note = db.session.scalars(select(Note).where(Note.id==note_id)).first()
     
     form = NoteForm(request.form,obj=note)
     form.sender.choices = [note.sender]
-
+    
+    form.content(disable=True)
+    
     if note.flow == 'in' or note.reg == 'min':
         form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(r'\bcr\b')).order_by(User.alias)).all()]
     else:
@@ -39,45 +50,57 @@ def edit_note_view(request):
     
     if request.method == 'POST' and form.validate():
         error = False
-        note.n_date = form.n_date.data
-        note.year = form.year.data
-        note.content = form.content.data
-        note.content_jp = form.content_jp.data
-        note.comments = form.comments.data
-        note.proc = form.proc.data
-        note.permanent = form.permanent.data
-        #note.sender = form.sender.data
-       
-        for n,user in enumerate(reversed(note.receiver)):
-            if not user.alias in form.receiver.data:
-                note.receiver.remove(user)
-
-        
-        for user in form.receiver.data:
-            rec = db.session.scalars(select(User).where(User.alias==user)).first()
-            if not rec in note.receiver:
-                note.receiver.append(rec)
-        
-
-        current_refs = []
-        if form.ref.data != "":
-            for ref in form.ref.data.split(","):
-                nt = get_ref(ref)
-                if nt:
-                    if nt.reg == 'ctr' or 'cr' in current_user.groups:
-                        current_refs.append(nt.fullkey)
-                        note.ref.append(nt)
-                    else:
-                        flash(f"Note {ref} cannot be add")
-                        error = True
+                
+        if ctr:
+            if form.comments_ctr.data != "":
+                cm = db.session.scalar(select(Comment).where(and_(Comment.sender_id==ctr,Comment.note_id==note.id)))
+                if not cm:
+                    cm = Comment(sender_id=ctr,note_id=note.id,comment=form.comments_ctr.data)
+                    db.session.add(cm)
                 else:
-                    flash(f"Note {ref} doesn't exist")
-                    error = True
+                    cm.comment = form.comments_ctr.data
+                print(cm)
+        else:
+            note.n_date = form.n_date.data
+            note.year = form.year.data
+            note.content = form.content.data
+            note.content_jp = form.content_jp.data
+            note.comments = form.comments.data
+            note.proc = form.proc.data
+            note.permanent = form.permanent.data
+            #note.sender = form.sender.data
+    
+       
+            for n,user in enumerate(reversed(note.receiver)):
+                if not user.alias in form.receiver.data:
+                    note.receiver.remove(user)
 
-        # Now I remove the notes not in current
-        for ref in reversed(note.ref):
-            if not ref.fullkey in current_refs:
-                note.ref.remove(ref)
+            
+            for user in form.receiver.data:
+                rec = db.session.scalars(select(User).where(User.alias==user)).first()
+                if not rec in note.receiver:
+                    note.receiver.append(rec)
+            
+
+            current_refs = []
+            if form.ref.data != "" and not isinstance(form.ref.data,list):
+                for ref in form.ref.data.split(","):
+                    nt = get_ref(ref)
+                    if nt:
+                        if nt.reg == 'ctr' or 'cr' in current_user.groups:
+                            current_refs.append(nt.fullkey)
+                            note.ref.append(nt)
+                        else:
+                            flash(f"Note {ref} cannot be add")
+                            error = True
+                    else:
+                        flash(f"Note {ref} doesn't exist")
+                        error = True
+
+            # Now I remove the notes not in current
+            for ref in reversed(note.ref):
+                if not ref.fullkey in current_refs:
+                    note.ref.remove(ref)
         
         db.session.commit()
         
@@ -86,9 +109,19 @@ def edit_note_view(request):
     
     else:
         form.ref.data = ",".join([r.fullkey for r in note.ref]) if note.ref else "" 
+        print(form.ref.data)    
         for rec in note.receiver:
             form.receiver.data.append(rec.alias)
+        
         form.permanent.data = note.permanent
-    
-    return render_template('register/note_form.html', form=form, note=note, user=current_user)
+        
+        form.comments_ctr.data = ""
+        for cm in note.comments_ctr:
+            if cm.sender_id == ctr:
+                form.comments_ctr.data = cm.comment
+ 
+    if ctr:
+        return render_template('register/note_form_ctr.html', form=form, note=note, user=current_user, ctr=ctr)
+    else:
+        return render_template('register/note_form.html', form=form, note=note, user=current_user, ctr=ctr)
 

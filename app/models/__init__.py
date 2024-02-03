@@ -104,6 +104,16 @@ class File(FileProp,FileNas,FileHtml,db.Model):
 
 
 
+class Comment(db.Model):
+    __tablename__: 'comment'
+
+    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
+    note_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('note.id'))
+    note: Mapped["Note"] = relationship(back_populates="comments_ctr")
+    sender_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('user.id'))
+    comment: Mapped[str] = mapped_column(db.Text, default = '')
+    
+
 
 note_ref = db.Table('note_ref',
                 db.Column('note_id', db.Integer, db.ForeignKey('note.id')),
@@ -147,6 +157,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     read_by: Mapped[str] = mapped_column(db.String(150), default = '')
 
     files: Mapped[list["File"]] = relationship(back_populates="note")
+    comments_ctr: Mapped[list["Comment"]] = relationship(back_populates="note")
     
 
     files_date = column_property(

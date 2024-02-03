@@ -128,6 +128,7 @@ class NoteNas(object):
 
     def updateFiles(self):
         print("Updating files in folder")
+
         if not self.permanent_link: # There is no permanent_link, I should get it first
             rst = self.getPermanentLink()
         else:

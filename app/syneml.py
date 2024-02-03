@@ -55,12 +55,16 @@ def write_eml(rec,note,path_download):
 
 
 def read_eml(file_eml,emails = None):
-    parsed_eml = eml_parser.parser.decode_email(file_eml,include_attachment_data=True,include_raw_body=True)
+    if isinstance(file_eml,str):
+        parsed_eml = eml_parser.parser.decode_email(file_eml,include_attachment_data=True,include_raw_body=True)
+    else:
+        parsed_eml = eml_parser.parser.decode_email_b(file_eml,include_attachment_data=True,include_raw_body=True)
+    
     sender = parsed_eml['header']['from']
     subject = parsed_eml['header']['subject']
     date = parsed_eml['header']['date']
     
-    dest = "{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN"
+    dest = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Mail/IN"
 
     if 'attachment' in parsed_eml:
         attachments = parsed_eml['attachment']
