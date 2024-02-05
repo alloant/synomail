@@ -67,7 +67,8 @@ def register_filter(rg,h_note = None):
             fn.append(Note.receiver.any(User.alias==rg[2]))
             fn.append(Note.state>=5)
             if not session['showAll']:
-                fn.append(Note.is_done(rg[2]))
+                ctr_fn = db.session.scalar(select(User).where(User.alias==rg[2]))
+                fn.append(Note.is_done(ctr_fn))
         else:
             fn.append(Note.sender.has(User.alias==rg[2]))
     elif rg[0] == 'min':
@@ -115,6 +116,9 @@ def register_actions(output,args): # Actions like new note, update read/state, u
     state_id = args.get('state')
     if state_id:
         nt = db.session.scalar(select(Note).where(Note.id==state_id))
+        if 'cl_in' in reg:
+            user = db.session.scalar(select(User).where(User.alias==rg[2]))
+            
         nt.updateState(reg,current_user)
         return "lasturl"
   
@@ -231,8 +235,6 @@ def register_view(output,args): # Use for all register in/out for cr and ctr, fo
     ctr = None
     if rg[0] == 'cl':
         ctr = db.session.scalar(select(User).where(User.alias==rg[2]))
-        if ctr:
-            ctr = ctr.id
 
     notes = db.paginate(sql, per_page=22)
     

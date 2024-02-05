@@ -69,11 +69,11 @@ class NoteHtml(object):
 
         return "<tr>"
 
-    def state_html(self,reg,user):
+    def state_html(self,reg,user,ctr):
         rg = reg.split("_")
 
         if rg[0] == 'cl':
-            return self.state_cl_html(reg,user)
+            return self.state_cl_html(reg,user,ctr)
         elif rg[0] in ['cr','pen']:
             return self.state_cr_html(reg,user)
         elif rg[0] == 'min':
@@ -84,11 +84,11 @@ class NoteHtml(object):
             return self.state_box_html(reg,user)
 
 
-    def state_cl_html(self,reg,user):
+    def state_cl_html(self,reg,user,ctr):
         rg = reg.split("_")
         if self.flow == 'out': # Notes in for the ctr. 3 options: no read, read and done
             if self.is_read(user):
-                if self.is_done(rg[2]):
+                if self.is_done(ctr):
                     icon = "bi-check-circle"
                     action = "state"
                     text = "Mark as undone"
@@ -99,7 +99,7 @@ class NoteHtml(object):
                     text = "Mark as done"
                     color = "red"
             else:
-                if self.is_done(rg[2]):
+                if self.is_done(ctr):
                     color = "gray"
                 else:
                     color = "red"

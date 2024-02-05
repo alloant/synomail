@@ -32,9 +32,9 @@
     {% else %}
       {{ note.content }}
     {% endif %}
-    {% if ctr %}
+    {% if ctr and note.comments_ctr %}
       {% for cm in note.comments_ctr %}
-        {% if cm.sender_id == ctr%}
+        {% if cm.sender_id == ctr.id %}
           <mark>({{cm.comment}})</mark>
         {% endif %}
       {% endfor %}

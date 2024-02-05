@@ -105,13 +105,22 @@ class NoteProp(object):
     
     @hybrid_method
     def is_done(self,user): #Use in state_cl and updateState for cl. We assume note is in for the ctr
-        if user in self.received_by.split(','):
-            return True
+        if user.alias in self.received_by.split(','):
+            rst = True
         else:
-            return False
+            rst = False
+        
+        if user.date > self.n_date:
+            rst = not rst
+        
+        return rst 
 
     @is_done.expression
-    def is_done(cls,alias):
+    def is_done(cls,user):
+        return case (
+            (user.date < cls.n_date,not_(cls.received_by.regexp_match(fr'\b{user.alias}\b')) ),
+        else_=cls.received_by.regexp_match(fr'\b{user.alias}\b')
+        )
         return not_(cls.received_by.regexp_match(fr'\b{alias}\b'))
 
     @property
@@ -180,12 +189,13 @@ class NoteProp(object):
             self.state += self.updateRead(f"des_{user.alias}")
         elif rg[0] == 'cl':
             if self.flow == 'out': # Note from cr to the ctr
-                if self.is_done(rg[2]):
-                    rst = self.received_by.split(",").remove(rg[2])
-                    if not rst: rst = ""
-                    self.received_by = rst
+                rst = self.received_by.split(",")
+                if rg[2] in rst:
+                    rst.remove(rg[2])
                 else:
-                    self.received_by += f",{rg[2]}"
+                    rst.append(rg[2])
+                if not rst: rst = ""
+                self.received_by = ",".join(rst)
             else:
                 if self.state == 0: # sending to cr
                     self.state = 1
