@@ -26,7 +26,7 @@ def inbox_view(request):
     #from app.tools import find_files, import_dates
     #import_dates()
     #find_files()
-    print(output)
+    #print(output)
     if rm_file:
         do_check = True
         file = db.session.scalar(select(File).where(File.id==rm_file))

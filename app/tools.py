@@ -30,30 +30,31 @@ def import_dates():
 def change_file_dates():
     files = db.session.scalars(select(File)).all()
     for file in files:
-        print(file.id)
+        #print(file.id)
         nt= db.session.scalar(select(Note).where(Note.id==file.note_id))
         if nt:
             file.date = nt.n_date
     db.session.commit()
 
 def find_files():
-    year = 2023
+    print("FInd files")
+    year = 2024
     flow = 'out'
-    notes = db.session.scalars(select(Note).where(Note.files==None,Note.year==year,Note.flow==flow))
+    notes = db.session.scalars(select(Note).where(Note.num>0,Note.files==None,Note.year==year,Note.flow==flow))
     
     regs = ['cg','asr','ctr','r']
-    regs = ['ctr']
+    regs = ['r']
     only_update = False
 
     for reg in regs:
-        break
+        #break
         files_cg = files_path(f"/team-folders/Archive/{reg} {flow} {year}")
         
         for note in notes:
             if note.reg == reg:
                 for file in files_cg:
                     if only_update: break
-                    print(note.note_folder,file['path'])
+                    #print(note.note_folder,file['path'])
                     if note.note_folder in file['path']:
                         if file['content_type'] == 'dir':
                             files_temp = files_path(f"/team-folders/Archive{file['path']}")
