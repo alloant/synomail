@@ -85,7 +85,7 @@ def edit_note_view(request):
             current_refs = []
             if form.ref.data != "" and not isinstance(form.ref.data,list):
                 for ref in form.ref.data.split(","):
-                    nt = get_ref(ref)
+                    nt = get_ref(ref.strip())
                     if nt:
                         if nt.reg == 'ctr' or 'cr' in current_user.groups:
                             current_refs.append(nt.fullkey)

@@ -146,6 +146,7 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
     permanent_link: Mapped[str] = mapped_column(db.String(150), default = '')
     comments: Mapped[str] = mapped_column(db.Text, default = '')
     
+    is_ref: Mapped[bool] = mapped_column(db.Boolean, default=False)
     permanent: Mapped[bool] = mapped_column(db.Boolean, default=False)
     
     reg: Mapped[str] = mapped_column(db.String(15), default = '')
