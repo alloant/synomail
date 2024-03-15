@@ -5,7 +5,7 @@ from app.models import User
 from wtforms import Form, BooleanField, StringField, PasswordField, validators, SubmitField, IntegerField
 
 class LoginForm(Form):
-    alias = StringField('User', [validators.Length(min=3, max=25)])
+    alias = StringField('User', [validators.Length(min=2, max=25)])
     password = PasswordField('Password', [validators.DataRequired()])
 
 class RegistrationForm(Form):

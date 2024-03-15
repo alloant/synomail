@@ -1,7 +1,7 @@
 {{ note.state_html(reg,user,ctr)|safe }}
 
 
-{% if user.admin or reg.split('_')[0] in ['min','des','box'] or note.state == 0 and note.rel_flow(reg) == 'out' and (user == note.sender or 'cl_out' in reg) or 'cl_in' in reg %}
+{% if user.admin or reg.split('_')[0] in ['min','des','box'] or note.state <= 1 and note.rel_flow(reg) == 'out' and (user == note.sender or 'cl_out' in reg) or 'cl_in' in reg %}
   <span class="text-muted">|</span>
   
   {% if reg.split('_')[0] == 'cl' %}

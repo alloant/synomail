@@ -15,7 +15,8 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = CheckboxInput()
 
 class NoteForm(FlaskForm):
-    num = IntegerField('Num',validators=[DataRequired()])
+    #num = IntegerField('Num',validators=[DataRequired()])
+    num = IntegerField('Num')
     year = IntegerField('Year',validators=[DataRequired()])
     sender = SelectField('Sender', validators=[DataRequired()])
 

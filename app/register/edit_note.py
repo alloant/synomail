@@ -26,15 +26,17 @@ def edit_note_view(request):
     note_id = request.args.get('note')
     alias_ctr = request.args.get('ctr')
     ctr = None
+    
     if alias_ctr:
         ctr = db.session.scalar(select(User).where(User.alias==alias_ctr))
-        if ctr:
-            ctr = ctr.id
+        ctr = ctr.id if ctr else None
     else: # No from a ctr then the user has to be in cr
         if not 'cr' in current_user.groups:
             return redirect(session['lasturl'])
+    
     #sender = aliased(User,name="sender_user")
     #note = db.session.scalars(select(Note).join(Note.sender.of_type(sender)).where(Note.id==note_id)).first()
+    
     note = db.session.scalars(select(Note).where(Note.id==note_id)).first()
     
     form = NoteForm(request.form,obj=note)
@@ -43,15 +45,17 @@ def edit_note_view(request):
     form.content(disable=True)
     
     if note.flow == 'in' or note.reg == 'min':
-        form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(r'\bcr\b')).order_by(User.alias)).all()]
+        form.receiver.choices = [(user.alias,f"{user.name} ({user.description})") for user in db.session.scalars(select(User).where(and_(User.u_groups.regexp_match(r'\bcr\b'),User.active==1)).order_by(User.alias)).all()]
+        #form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(and_(User.u_groups.regexp_match(r'\bcr\b'),User.active==1)).order_by(User.alias)).all()]
     else:
-        form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(User.u_groups.regexp_match(fr'\b{note.reg}\b')).order_by(User.alias)).all()]
+        #form.receiver.choices = [(user.alias,user.fullName) for user in db.session.scalars(select(User).where(and_(User.u_groups.regexp_match(fr'\b{note.reg}\b'),User.active==1)).order_by(User.alias)).all()]
+        form.receiver.choices = [(user.alias,f"{user.alias} ({user.description})") for user in db.session.scalars(select(User).where(and_(User.u_groups.regexp_match(fr'\b{note.reg}\b'),User.active==1)).order_by(User.alias)).all()]
     
     
     if request.method == 'POST' and form.validate():
         error = False
                 
-        if ctr:
+        if ctr and note.state > 0 and note.flow == 'in':
             if form.comments_ctr.data != "":
                 cm = db.session.scalar(select(Comment).where(and_(Comment.sender_id==ctr,Comment.note_id==note.id)))
                 if not cm:
@@ -59,7 +63,6 @@ def edit_note_view(request):
                     db.session.add(cm)
                 else:
                     cm.comment = form.comments_ctr.data
-                print(cm)
         else:
             note.n_date = form.n_date.data
             note.year = form.year.data
@@ -109,7 +112,6 @@ def edit_note_view(request):
     
     else:
         form.ref.data = ",".join([r.fullkey for r in note.ref]) if note.ref else "" 
-        print(form.ref.data)    
         for rec in note.receiver:
             form.receiver.data.append(rec.alias)
         
@@ -120,7 +122,7 @@ def edit_note_view(request):
             if cm.sender_id == ctr:
                 form.comments_ctr.data = cm.comment
  
-    if ctr:
+    if ctr and (note.state > 0 and note.flow == 'in' or note.flow == 'out'):
         return render_template('register/note_form_ctr.html', form=form, note=note, user=current_user, ctr=ctr)
     else:
         return render_template('register/note_form.html', form=form, note=note, user=current_user, ctr=ctr)

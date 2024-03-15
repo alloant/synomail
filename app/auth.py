@@ -26,7 +26,7 @@ def login():
             return render_template('auth/auth.html',login=True, form=form)
 
         login_user(user)
-        check_folders_synology()
+        #check_folders_synology()
 
         if 'cr' in user.groups:
             return redirect(url_for('register.register',reg='pen_in_'))

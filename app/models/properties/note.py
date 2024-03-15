@@ -125,12 +125,20 @@ class NoteProp(object):
 
     @property
     def note_folder(self):
-        folder = self.fullkey.split("/")[0]
-        
+        if self.num == 0: # Es una ref
+            if self.ref:
+                folder = self.ref[0].fullkey.split("/")[0]
+            else:
+                return None
+        else: 
+            folder = self.fullkey.split("/")[0]
+    
         name,num = folder.split(" ")
         num = f"0000{num}"[-4:]
         if self.reg == 'min':
             return f"Minuta_{num}"
+        if self.num == 0:
+            return f"ref {name}_{num}"
         else:
             return f"{name}_{num}"
     

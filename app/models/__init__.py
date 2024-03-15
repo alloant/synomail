@@ -172,13 +172,15 @@ class Note(NoteProp,NoteHtml,NoteNas,db.Model):
         super(Note,self).__init__(*args, **kwargs)
         self.sender = db.session.scalar(select(User).where(User.id==self.sender_id))  
         
-        folder = self.sender.alias
+        alias = self.sender.alias
         if self.sender.alias in ['cg','asr'] or 'r' in self.sender.groups:
             self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Notes/{self.year}/{self.reg} in"
         elif self.reg == 'min':
             self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{folder}/Minutas/{datetime.now().year}"
-        else:
-            self.path = f"{current_app.config['SYNOLOGY_FOLDER_NOTES']}/Minutas/{folder}/Notes"
+        elif 'ctr' in self.sender.groups: # Note created by a ctr
+            self.path = f"/team-folders/Mailbox {alias}/{alias} to cr"
+        else: # Note create by dr/of cr
+            self.path = f"/team-folders/Mail {alias}/Outbox"
 
         rst = self.create_folder()
 
