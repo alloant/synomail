@@ -30,7 +30,6 @@ def import_dates():
 def change_file_dates():
     files = db.session.scalars(select(File)).all()
     for file in files:
-        #print(file.id)
         nt= db.session.scalar(select(Note).where(Note.id==file.note_id))
         if nt:
             file.date = nt.n_date
